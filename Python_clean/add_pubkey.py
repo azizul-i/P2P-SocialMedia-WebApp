@@ -8,31 +8,33 @@ import time
 class PublicKey(object):
 
     #def add_key(self,username,password):
+
+        """ Use this API to associate a public key (256-bit Ed25519 format, hex encoded) with
+            your account. The public key that is added is the one provided for the purposes of the
+            signature. """
         url = "http://cs302.kiwi.land/api/add_pubkey"
-        #STUDENT TO UPDATE THESE...
         username = "misl000"
         password = "misl000_171902940"
 
-        publicKey = ""
-        signatureTemp = ""
-        signature = ""
-        #password = "misl000_171902940"
-        #Public key =
-        # Signature - calculate
-        # SendSig = signature
+        # Generate new private key
         signing_key = nacl.signing.SigningKey.generate()
+
+        # Generate public key from private key
         verify_key = signing_key.verify_key
+
+        # Make private key encoded
         private_key = signing_key.encode(encoder=nacl.encoding.HexEncoder)
-        #private_key = private_key.decode('utf-8')
         print(private_key)
+
+        # Hex Encoded public key
         verify_key_hex = verify_key.encode(encoder=nacl.encoding.HexEncoder)
         publicKey = verify_key_hex.decode('utf-8')
+
+        # Sign message with public key and username
         signatureMessage = bytes(publicKey + username, encoding = 'utf-8')
         signedMessage = signing_key.sign(signatureMessage, encoder=nacl.encoding.HexEncoder)
         signature_str = signedMessage.signature.decode('utf-8')
-        signaturePing = bytes(publicKey, encoding = 'utf-8')
-        signaturePing = signing_key.sign(signaturePing, encoder=nacl.encoding.HexEncoder)
-        signaturePing_str = signaturePing.signature.decode('utf-8')
+
 
         # create HTTP BASIC authorization header
         credentials = ('%s:%s' % (username, password))
@@ -50,12 +52,13 @@ class PublicKey(object):
             "signature": signature_str,
             "client_time": time.time()
 
-            # STUDENT TO COMPLETE THIS...
+
         }
 
-        # STUDENT TO COMPLETE:
+
         # 1. convert the payload into json representation,
         payload_str = json.dumps(payload)
+        
         # 2. ensure the payload is in bytes, not a string
         json_payload = payload_str.encode('utf-8')
 

@@ -5,30 +5,23 @@ import nacl.encoding
 import nacl.signing
 import time
 
-class Login(object):
+class Report(object):
 
-    #def authenticate(self,username,password):
+    
+
+        # Report endpoint
         url = "http://cs302.kiwi.land/api/report"
 
-        #STUDENT TO UPDATE THESE...
+        # Credentials use server to update
         username = "misl000"
         password = "misl000_171902940"
 
-        publicKey = ""
-        signatureTemp = ""
-        signature = ""
-        #password = "misl000_171902940"
-        #Public key =
-        # Signature - calculate
-        # SendSig = signature
-        signing_key = nacl.signing.SigningKey.generate()
-        verify_key = signing_key.verify_key
-        verify_key_hex = verify_key.encode(encoder=nacl.encoding.HexEncoder)
-        publicKey = verify_key_hex.decode('utf-8')
-        signatureMessage = bytes(publicKey + username, encoding = 'utf-8')
-        signedMessage = signing_key.sign(signatureMessage, encoder=nacl.encoding.HexEncoder)
-        signature_str = signedMessage.signature.decode('utf-8')
+        # current public key
+        pubkey = "c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
 
+        # connections
+        connection_address = "202.36.244.134"
+        connection_location = "2"
 
         # create HTTP BASIC authorization header
         credentials = ('%s:%s' % (username, password))
@@ -41,17 +34,17 @@ class Login(object):
         }
 
         payload = {
-            "connection_address": "202.36.244.134",
-            "connection_location": "2",
-            "incoming_pubkey":"c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
+            "connection_address": connection_address,
+            "connection_location": connection_location,
+            "incoming_pubkey":pubkey
 
 
-            # STUDENT TO COMPLETE THIS...
         }
 
-        # STUDENT TO COMPLETE:
+        
         # 1. convert the payload into json representation,
         payload_str = json.dumps(payload)
+
         # 2. ensure the payload is in bytes, not a string
         json_payload = payload_str.encode('utf-8')
 

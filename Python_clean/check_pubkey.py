@@ -5,14 +5,12 @@ import nacl.encoding
 import nacl.signing
 import time
 
-class PublicKey(object):
+class Checkkey(object):
 
-    #def add_key(self,username,password):
-        url = "http://cs302.kiwi.land/api/loginserver_pubkey"
-        #STUDENT TO UPDATE THESE...
+        # endpoint and credentials
+        url = "http://cs302.kiwi.land/api/check_pubkey?pubkey=c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
         username = "misl000"
         password = "misl000_171902940"
-        publicKey = "57cb31eb221c714f1b88f5f8745dddc47a1bcfbb03faebf0814160fafe2d4e73"
 
 
 
@@ -26,13 +24,13 @@ class PublicKey(object):
         }
 
         payload = {
-            "pubkey": publicKey
-            # STUDENT TO COMPLETE THIS...
+
         }
 
-        # STUDENT TO COMPLETE:
+
         # 1. convert the payload into json representation,
         payload_str = json.dumps(payload)
+        
         # 2. ensure the payload is in bytes, not a string
         json_payload = payload_str.encode('utf-8')
 

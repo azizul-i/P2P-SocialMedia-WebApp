@@ -4,27 +4,38 @@ import base64
 import nacl.encoding
 import nacl.signing
 import time
-#import add_pubkey
 
-class Login(object):
 
-   
-    def get_ping(self):
-    #def authenticate(self,username,password):
+class Ping(object):
+
+    # Tests whether the Login server is online, and tests signing/authentication
+    #def get_ping(self):
         url = "http://cs302.kiwi.land/api/ping"
 
-        #STUDENT TO UPDATE THESE...
+        # Need to check with Hammond
         self = "name"
+        # Should be inputed from personal web api
         username = "misl000"
         password = "misl000_171902940"
+
+
         publickey = "c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
+
+        # Utilise get private data endpoint
         privatekey = "2a4ec0f5a1edeca10c344b9d3558fb4cb411be6006c086252f3042a92434cf29"
+
+        # Creates a signing key from encoded private key
         signing_key = nacl.signing.SigningKey(privatekey, encoder=nacl.encoding.HexEncoder)
+
+        # Creates a message to be signed (pubkey)
         signatureMessage = bytes(publickey, encoding = 'utf-8')
+
+        # Signs message using signing key and encodes it
         signedMessage = signing_key.sign(signatureMessage, encoder=nacl.encoding.HexEncoder)
+
+        # Decodes it into string 
         signature_str = signedMessage.signature.decode('utf-8')
-        # Returns a public key, and its corresponding signature (sign(pubkey))
-        #pubkey,signaturePing,singatureMessage,signing_key,login = add_pubkey.PublicKey.add_key(self,username,password)
+        
         
 
 
@@ -45,13 +56,13 @@ class Login(object):
  
         }
 
-        # STUDENT TO COMPLETE:
-        # 1. convert the payload into json representation,
+        # converts the payload into json representation,
         payload_str = json.dumps(payload)
-        # 2. ensure the payload is in bytes, not a string
+
+        # ensures the payload is in bytes, not a string
         json_payload = payload_str.encode('utf-8')
 
-        # 3. pass the payload bytes into this function
+        # passes the payload bytes into this function
         try:
             req = urllib.request.Request(url, data=json_payload, headers=headers)
             response = urllib.request.urlopen(req)
@@ -65,4 +76,4 @@ class Login(object):
 
         JSON_object = json.loads(data.decode(encoding))
         print(JSON_object)
-        return publickey,privatekey
+        #return publickey,privatekey

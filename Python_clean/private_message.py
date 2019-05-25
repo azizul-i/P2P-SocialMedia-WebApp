@@ -10,21 +10,33 @@ import time
 
 class private_message(object):
     #def broadcasting(self,username,password,publicKey,signing_key):
+
+        """ Use this API to transmit a secret message between users. Meta-information is
+            public (the sender username/pubkey, and the destination username/pubkey, the timestamp). """
         url = "http://cs302.kiwi.land/api/rx_privatemessage"
         username = "misl000"
         password = "misl000_171902940"
-        target_username = "admin"
+
+        # timestamp
         sender_created_at = str(time.time())
+
+        # target details
+        target_username = "admin"
         target_pubkey = "11c8c33b6052ad73a7a29e832e97e31f416dedb7c6731a6f456f83a344488ec0"
+
+        # Generate encrypting public key
         target_key = nacl.signing.VerifyKey(target_pubkey,encoder=nacl.encoding.HexEncoder).to_curve25519_public_key()
+
+        # Make sealed box using public key (can only be decoded by target)
         box = nacl.public.SealedBox(target_key)
+
         target_key_str = target_key.encode(encoder=nacl.encoding.HexEncoder).decode('utf-8')
+
+        # Private message that needs to be encrypted
         message = bytes("Testing out Private messaging",encoding = 'utf-8')
         encrypted_message = box.encrypt(message, encoder=nacl.encoding.HexEncoder).decode('utf-8')
-        #self = "broadcast"
-        #publicKey = ""
-        signatureTemp = ""
-        signature = ""
+
+        # Create signing key from private key
         publickey = "c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
         privatekey = "2a4ec0f5a1edeca10c344b9d3558fb4cb411be6006c086252f3042a92434cf29"
         login = 'misl000,c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48,1558689185.3489795,4625731f1a7396bcffad7b68da2c0de8fcc222663f8ac75bd88597ac4dfdaa2fced2d4e841e86f1d316bf9c010dd4e6bc005f70ee7558546e0d7b76a3af9ff01'
@@ -32,6 +44,8 @@ class private_message(object):
         sender_created_at = str(time.time())
         
         #publicKey,signaturePing_str,signature_str,signing_key,login = add_pubkey.PublicKey.add_key(self,username,password)
+        
+        # Sign message (login,targetkey,targetusernmae,encryptedmessage,sender_created_at)
         signatureMessage = bytes(login + target_pubkey + target_username + encrypted_message + sender_created_at, encoding = 'utf-8')
         signedMessage = signing_key.sign(signatureMessage, encoder=nacl.encoding.HexEncoder)
         signature_str = signedMessage.signature.decode('utf-8')
@@ -54,12 +68,12 @@ class private_message(object):
             "signature": signature_str,
         
 
-            # STUDENT TO COMPLETE THIS...
+
         }
 
-        # STUDENT TO COMPLETE:
         # 1. convert the payload into json representation,
         payload_str = json.dumps(payload)
+        
         # 2. ensure the payload is in bytes, not a string
         json_payload = payload_str.encode('utf-8')
 

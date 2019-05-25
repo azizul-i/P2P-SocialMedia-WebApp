@@ -85,13 +85,12 @@ class MainApp(object):
 ###
 ### Functions only after here
 ###
+
+# Adding a public key endpoint
 @cherrypy.expose
 def add_publickey(self,username=None,password=None):
     error = authoriseUserLogin(self, cherrypy.session['username'], cherrypy.session['password'])
     if error == 0:
-        #add_pubkey.PublicKey.add_key(self,cherrpy.session['username'],cherrpy.session['password'])
-            #authorised_access.Authenticate.authenticate(self,username,password)
-            #broadcast_access.Broadcast.get_key(self,username,password)
         raise cherrypy.HTTPRedirect('/')
     else:
         raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
