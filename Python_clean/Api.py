@@ -92,7 +92,7 @@ class Api(object):
         #pubkey = "c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
 
         # connections
-        connection_address = "127.0.0.1:20359"
+        connection_address = "127.0.0.1:8080"
         connection_location = "2"
 
         # create HTTP BASIC authorization header
@@ -649,6 +649,7 @@ class Api(object):
         url = "http://127.0.0.1:8080/listen/rx_broadcast"
         #username = "misl000"
         #password = "misl000_171902940"
+        
 
         # Load public and private keys
         #publickey = "c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
@@ -708,6 +709,7 @@ class Api(object):
             exit()
 
         JSON_object = json.loads(data.decode(encoding))
+        print("IT WORKS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         print(JSON_object)
 
     def rx_privatemessage(self,username,apikey,pubkey,privkey,login_record, t_user, t_pubkey,t_message):

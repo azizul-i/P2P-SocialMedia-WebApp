@@ -465,6 +465,7 @@ class ClientApiApp(object):
 
     @cherrypy.expose
     def rx_broadcast(self):
+        Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
         received_broadcast = json.loads(cherrypy.request.body.read().decode('utf-8'))
         print(received_broadcast)
         response = {
