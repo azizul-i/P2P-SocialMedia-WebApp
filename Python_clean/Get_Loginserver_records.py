@@ -5,46 +5,32 @@ import nacl.encoding
 import nacl.signing
 import time
 
-class Report(object):
-
-    
-    def report_details(self,username,password):
-        # Report endpoint
-        url = "http://cs302.kiwi.land/api/report"
-
-        # Credentials use server to update
+class Serverkey(object):
+    def get_loginrecord(self,username,password):
+        # endpoint and credentials
+        url = "http://cs302.kiwi.land/api/get_loginserver_record"
         #username = "misl000"
         #password = "misl000_171902940"
 
-        # current public key
-        pubkey = "c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
 
-        # connections
-        connection_address = "0.0.0.0:6547"
-        connection_location = "2"
-
+        
         # create HTTP BASIC authorization header
         credentials = ('%s:%s' % (username, password))
         b64_credentials = base64.b64encode(credentials.encode('ascii'))
         headers = {
             'Authorization': 'Basic %s' % b64_credentials.decode('ascii'),
             'Content-Type': 'application/json; charset=utf-8',
-
             
         }
 
         payload = {
-            "connection_address": connection_address,
-            "connection_location": connection_location,
-            "incoming_pubkey":pubkey
-
 
         }
 
-        
+
         # 1. convert the payload into json representation,
         payload_str = json.dumps(payload)
-
+        
         # 2. ensure the payload is in bytes, not a string
         json_payload = payload_str.encode('utf-8')
 
@@ -61,4 +47,6 @@ class Report(object):
             exit()
 
         JSON_object = json.loads(data.decode(encoding))
+     
         print(JSON_object)
+        return JSON_object["loginserver_record"]

@@ -4,12 +4,13 @@ import base64
 import nacl.encoding
 import nacl.signing
 import time
-#import add_pubkey
+import Get_Loginserver_records
+import decode_privatedata
 
 
 
 class Broadcast_message(object):
-    #def broadcasting(self,username,password,publicKey,signing_key):
+    #def broadcasting(self,username,password,message):
 
         """Use this API to transmit a signed broadcast between users. You need to be
            authenticated, and the broadcast public key must be known, but the broadcast public key
@@ -18,23 +19,26 @@ class Broadcast_message(object):
         url = "http://cs302.kiwi.land/api/rx_broadcast"
         username = "misl000"
         password = "misl000_171902940"
+        message = "Test 4305"
         self = "broadcast"
 
         # Load public and private keys
-        publickey = "c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
-        privatekey = "2a4ec0f5a1edeca10c344b9d3558fb4cb411be6006c086252f3042a92434cf29"
+        #publickey = "c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
+        privatekey = decode_privatedata.private_data.decodeKeys(self)
 
         # Load login record
-        login = 'misl000,c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48,1558689185.3489795,4625731f1a7396bcffad7b68da2c0de8fcc222663f8ac75bd88597ac4dfdaa2fced2d4e841e86f1d316bf9c010dd4e6bc005f70ee7558546e0d7b76a3af9ff01'
-
+        login = Get_Loginserver_records.Serverkey.get_loginrecord(self,username,password) # Get login record works
         # get private key from private data to generate signing key
         signing_key = nacl.signing.SigningKey(privatekey, encoder=nacl.encoding.HexEncoder)
+        verify_key = signing_key.verify_key
+        verify_key_hex = verify_key.encode(encoder=nacl.encoding.HexEncoder)
+        publicKey = verify_key_hex.decode('utf-8')
 
         # get timestamp
         sender_created_at = str(time.time())
 
         # record broadcast message (tweet)
-        message = "Tweety tweet test"
+        #message = "Combination Test2"
     
         # Message signing
         signatureMessage = bytes(login + message + sender_created_at, encoding = 'utf-8')

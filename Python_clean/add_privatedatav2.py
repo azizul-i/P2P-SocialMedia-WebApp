@@ -7,6 +7,7 @@ import time
 import nacl.secret
 import nacl.utils
 import Get_Loginserver_records
+import nacl.pwhash
 
 class private(object):
 
@@ -23,10 +24,23 @@ class private(object):
 
 
         #SecretBox generation
-        key = nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE)
-        print(key) # Keep this key safe!!!
-        box = nacl.secret.SecretBox(key)
+        
+        #key = nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE)
+        #print(key) # Keep this key safe!!!
+        # box = nacl.secret.SecretBox(key)
+        # nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+
+        key_password = "password"
+        salt_password = bytes((key_password * 16).encode('utf-8')[:16])
+        key_password_b = bytes(key_password, encoding='utf-8')
+        ops = nacl.pwhash.argon2i.OPSLIMIT_SENSITIVE
+        mems = nacl.pwhash.argon2i.MEMLIMIT_SENSITIVE
+        #symmetric_key = nacl.pwhash.argon2i.kdf(32,key_password_b,salt_password,ops,mems, encoder=nacl.encoding.HexEncoder)
+        symmetric_key = nacl.pwhash.argon2i.kdf(32,key_password_b,salt_password,ops,mems)
+        print(symmetric_key)
+        box = nacl.secret.SecretBox(symmetric_key)
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+
         
         
         privatedata = { 
@@ -46,7 +60,7 @@ class private(object):
         privatedata = bytes(privatedata, encoding='utf-8') 
 
         # Encrypt the private data
-        encrypted_privatedata = box.encrypt(privatedata,nonce=None, encoder=nacl.encoding.HexEncoder).decode('utf-8')
+        encrypted_privatedata = box.encrypt(privatedata,nonce, encoder=nacl.encoding.HexEncoder).decode('utf-8')
         
         # Get private key 
         privatekey = "2a4ec0f5a1edeca10c344b9d3558fb4cb411be6006c086252f3042a92434cf29"
@@ -70,11 +84,11 @@ class private(object):
         }
 
         payload = {
-            
             "privatedata": encrypted_privatedata,
             "loginserver_record": loginserver_record,
             "client_saved_at": client_saved_at,
             "signature": signature_str,
+
  
         }
 

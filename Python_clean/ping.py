@@ -7,13 +7,13 @@ import time
 
 
 class Ping(object):
-
+    #def pinging(self, username, password):
     # Tests whether the Login server is online, and tests signing/authentication
     #def get_ping(self):
         url = "http://cs302.kiwi.land/api/ping"
 
         # Need to check with Hammond
-        self = "name"
+        #self = "name"
         # Should be inputed from personal web api
         username = "misl000"
         password = "misl000_171902940"

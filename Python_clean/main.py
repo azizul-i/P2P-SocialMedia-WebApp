@@ -16,9 +16,11 @@ import cherrypy
 
 import server
 
+
 # The address we listen for connections on
-LISTEN_IP = "0.0.0.0"
-LISTEN_PORT = 1234
+LISTEN_IP = "127.0.0.1"
+#LISTEN_PORT = 1234
+LISTEN_PORT = 20359
 
 def runMainApp():
     #set up the config
@@ -41,6 +43,34 @@ def runMainApp():
             'tools.staticdir.on': True,
             'tools.staticdir.dir': 'static',
         },
+
+        '/api': {
+            'tools.staticdir.root': os.getcwd(),
+            'tools.encode.on': True, 
+            'tools.encode.encoding': 'utf-8',
+            'tools.sessions.on': True,
+            'tools.sessions.timeout': 60 * 1, #timeout is in minutes, * 60 to get hours
+
+            # The default session backend is in RAM. Other options are 'file',
+            # 'postgres', 'memcached'. For example, uncomment:
+            # 'tools.sessions.storage_type': 'file',
+            # 'tools.sessions.storage_path': '/tmp/mysessions',
+        },
+
+                '/listen': {
+            'tools.staticdir.root': os.getcwd(),
+            'tools.encode.on': True, 
+            'tools.encode.encoding': 'utf-8',
+            'tools.sessions.on': True,
+            'tools.sessions.timeout': 60 * 1, #timeout is in minutes, * 60 to get hours
+
+            # The default session backend is in RAM. Other options are 'file',
+            # 'postgres', 'memcached'. For example, uncomment:
+            # 'tools.sessions.storage_type': 'file',
+            # 'tools.sessions.storage_path': '/tmp/mysessions',
+        },
+
+
         
         #once a favicon is set up, the following code could be used to select it for cherrypy
         #'/favicon.ico': {
@@ -55,6 +85,8 @@ def runMainApp():
 
     # Create an instance of MainApp and tell Cherrypy to send all requests under / to it. (ie all of them)
     cherrypy.tree.mount(server.MainApp(), "/", conf)
+    cherrypy.tree.mount(server.ApiApp(), "/api/", conf)
+    cherrypy.tree.mount(server.ClientApiApp(), "/listen/", conf)
 
     # Tell cherrypy where to listen, and to turn autoreload on
     cherrypy.config.update({'server.socket_host': LISTEN_IP,

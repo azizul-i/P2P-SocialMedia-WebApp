@@ -1,12 +1,66 @@
+
 body {
     margin: 1em auto;
     max-width: 40em;
     padding: 0 .62em;
-    font: 1.2em/1.62 sans-serif;
+    font: 1.2em/1.62 serif;
+    background-color:#ffc691
+}
+
+title {
+}
+
+head {
+
 }
 
 h1,
 h2,
 h3 {
     line-height: 1.2;
+    
+
+
 }
+
+a:link, a:visited {
+    background-color: white;
+    color: black;
+    border: 2px solid orange;
+    padding: 3px 10px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+  }
+  
+  a:hover, a:active {
+    background-color: orange;
+    color: white;
+  }
+
+/*a:link {
+    background-color: #ffba24;
+    color: black;
+    padding: 3px 10px;
+    text-align: center; 
+    text-decoration: none;
+    display: inline-block;
+
+}
+a:visited {
+    background-color: #f1ad5f;
+    color: black;
+    padding: 3px 10px;
+    text-align: center; 
+    text-decoration: none;
+    display: inline-block;
+
+}
+a:hover {
+    background-color: rgb(240, 191, 118);
+
+}
+a:active {
+    background-color: rgb(240, 191, 118);
+
+}*/
