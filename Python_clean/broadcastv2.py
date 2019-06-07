@@ -20,7 +20,7 @@ class broadcastv2(object):
         # replace URL with specific connection
         #url = "http://cs302.kiwi.land/api/rx_broadcast"
         self = "name"
-        url = "http://172.23.24.28:8080/api/rx_broadcast"
+        url = "http://192.168.87.21:8080/api/rx_broadcast"
         username = "misl000"
         password = "misl000_171902940"
         

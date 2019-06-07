@@ -4,6 +4,8 @@ import base64
 import nacl.encoding
 import nacl.signing
 import time
+import Api
+import Get_Loginserver_records
 #import add_pubkey
 
 
@@ -13,7 +15,7 @@ class private_message(object):
 
         """ Use this API to transmit a secret message between users. Meta-information is
             public (the sender username/pubkey, and the destination username/pubkey, the timestamp). """
-        url = "http://cs302.kiwi.land/api/rx_privatemessage"
+        url = "http://192.168.87.21:8080/api/rx_privatemessage"
         username = "misl000"
         password = "misl000_171902940"
 
@@ -21,8 +23,8 @@ class private_message(object):
         sender_created_at = str(time.time())
 
         # target details
-        target_username = "admin"
-        target_pubkey = "11c8c33b6052ad73a7a29e832e97e31f416dedb7c6731a6f456f83a344488ec0"
+        target_username = "misl000"
+        target_pubkey = "849bebfcfcf8c91bfae44088ceeac35e2b9c02db3727822e10df03ed2da25ba4"
 
         # Generate encrypting public key
         target_key = nacl.signing.VerifyKey(target_pubkey,encoder=nacl.encoding.HexEncoder).to_curve25519_public_key()
@@ -33,13 +35,14 @@ class private_message(object):
         target_key_str = target_key.encode(encoder=nacl.encoding.HexEncoder).decode('utf-8')
 
         # Private message that needs to be encrypted
-        message = bytes("Testing out Private messaging",encoding = 'utf-8')
+        message = bytes("ALLOO",encoding = 'utf-8')
         encrypted_message = box.encrypt(message, encoder=nacl.encoding.HexEncoder).decode('utf-8')
 
         # Create signing key from private key
-        publickey = "c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
-        privatekey = "2a4ec0f5a1edeca10c344b9d3558fb4cb411be6006c086252f3042a92434cf29"
-        login = 'misl000,c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48,1558689185.3489795,4625731f1a7396bcffad7b68da2c0de8fcc222663f8ac75bd88597ac4dfdaa2fced2d4e841e86f1d316bf9c010dd4e6bc005f70ee7558546e0d7b76a3af9ff01'
+        publickey = "849bebfcfcf8c91bfae44088ceeac35e2b9c02db3727822e10df03ed2da25ba4"
+        privatekey = "7333aec56f033a132a86a1e1187d9874e93050fab19ef441b1410533cb812281"
+        login = Get_Loginserver_records.Serverkey.get_loginrecord("name")
+        #'misl000,849bebfcfcf8c91bfae44088ceeac35e2b9c02db3727822e10df03ed2da25ba4,1558689185.3489795,4625731f1a7396bcffad7b68da2c0de8fcc222663f8ac75bd88597ac4dfdaa2fced2d4e841e86f1d316bf9c010dd4e6bc005f70ee7558546e0d7b76a3af9ff01'
         signing_key = nacl.signing.SigningKey(privatekey, encoder=nacl.encoding.HexEncoder)
         sender_created_at = str(time.time())
         
@@ -49,6 +52,12 @@ class private_message(object):
         signatureMessage = bytes(login + target_pubkey + target_username + encrypted_message + sender_created_at, encoding = 'utf-8')
         signedMessage = signing_key.sign(signatureMessage, encoder=nacl.encoding.HexEncoder)
         signature_str = signedMessage.signature.decode('utf-8')
+
+        unseal_key = nacl.signing.SigningKey(privatekey,encoder=nacl.encoding.HexEncoder).to_curve25519_private_key()
+        unseal_box = nacl.public.SealedBox(unseal_key)
+        plain_text = unseal_box.decrypt(encrypted_message, encoder=nacl.encoding.HexEncoder).decode('utf-8')
+        print(plain_text)
+
         
 
         # create HTTP BASIC authorization header

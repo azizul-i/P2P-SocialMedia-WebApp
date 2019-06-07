@@ -94,14 +94,14 @@ def runMainApp():
     # Create an instance of MainApp and tell Cherrypy to send all requests under / to it. (ie all of them)
     cherrypy.tree.mount(server.MainApp(), "/", conf)
     cherrypy.tree.mount(server.ApiApp(), "/api", conf)
-    cherrypy.tree.mount(server.ClientApiApp(), "/server", conf)
+    #cherrypy.tree.mount(server.ClientApiApp(), "/server", conf)
 
     # Tell cherrypy where to listen, and to turn autoreload on
     cherrypy.config.update({'server.socket_host': LISTEN_IP,
                             'server.socket_port': LISTEN_PORT,
                             'engine.autoreload.on': True,
                            })
-   # cherrypy.quickstart()
+    # cherrypy.quickstart()
 
     #cherrypy.tools.auth = cherrypy.Tool('before_handler', auth.check_auth, 99)
 

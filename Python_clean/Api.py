@@ -6,6 +6,7 @@ import nacl.signing
 import nacl.pwhash
 import sqlite3
 import nacl.secret
+import nacl.public
 import time
 import data
 import socket
@@ -152,7 +153,8 @@ class Api(object):
 
         JSON_object = json.loads(data.decode(encoding))
         print(status)
-        print(JSON_object)   
+        print(JSON_object)
+        return JSON_object["response"]   
     
     def list_apis_EP(self):
         url = "http://cs302.kiwi.land/api/list_apis"
@@ -503,7 +505,6 @@ class Api(object):
 
 
 
-        
         # create HTTP BASIC authorization header
         #credentials = ('%s:%s' % (username, password))
         #b64_credentials = base64.b64encode(credentials.encode('ascii'))
@@ -804,6 +805,14 @@ class Api(object):
 
         JSON_object = json.loads(data.decode(encoding))
         print(JSON_object)
+
+    def decrypt_private_message(self,privatekey,encrypted_message):
+        print(privatekey)
+        unseal_key = nacl.signing.SigningKey(privatekey,encoder=nacl.encoding.HexEncoder).to_curve25519_private_key()
+        unseal_box = nacl.public.SealedBox(unseal_key)
+        plain_text = unseal_box.decrypt(encrypted_message, encoder=nacl.encoding.HexEncoder).decode('utf-8')
+        return plain_text
+
 
     def tx_ping_check_EP(self, username, api_key, connection_address, connection_location):
         url = "http://172.23.73.212:1234/api/ping_check"

@@ -10,6 +10,7 @@ import data
 import sqlite3
 import json
 import base64
+import requests
 import nacl.encoding
 import nacl.signing
 import nacl.pwhash
@@ -50,20 +51,44 @@ class MainApp(object):
         
         try:
             Page += "Hello " + cherrypy.session['username'] + "!<br/>"
+            Page += "Status: " + cherrypy.session.get('status') + "<br/>"
+            
             #Page += "Account Information:" + "<br/>"
             Page += "<body>What would you like to do today?</body>" + "<br/>"
-            Page += "<a href='/api/ping' class = 'ApiApp'>PING</a>" + "<br/>"
-            Page += "<a href='/api/list_apis' class = 'ApiApp'>List APIs</a>" + "<br/>"
-            Page += "<a href='/api/load_new_apikey' class = 'ApiApp'>Load New API key</a>" + "<br/>"
-            Page += "<a href='/api/loginserver_pubkey' class = 'ApiApp'>Load loginserver's public key</a>" + "<br/>"
-            Page += "<a href='/api/report' class = 'ApiApp'>REPORT</a>" + "<br/>"
-            Page += "<a href='/api/status_report' class = 'ApiApp'>Status REPORT</a>" + "<br/>"
-            Page += "<a href='/api/list_users' class = 'ApiApp'>List Online Users</a>" + "<br/>"
-            Page += "<a href='/api/get_loginserver_record' class = 'ApiApp'>Load Certificate</a>" + "<br/>"
-            Page += "<a href='/api/pubkeys' class = 'ApiApp'>Configure Public Keys</a>" + "<br/>"
-            Page += "<a href='/api/config_privdata' class = 'ApiApp'>Configure Private Keys</a>" + "<br/>"
-            Page += "<a href='/api/private_message' class = 'ApiApp'>Private Messaging Page</a>"
+            #Page += "<a href='/api/ping' class = 'ApiApp'>PING</a>" + "<br/>"
+            #Page += "<a href='/api/list_apis' class = 'ApiApp'>List APIs</a>" + "<br/>"
+            #Page += "<a href='/api/load_new_apikey' class = 'ApiApp'>Load New API key</a>" + "<br/>"
+            #Page += "<a href='/api/loginserver_pubkey' class = 'ApiApp'>Load loginserver's public key</a>" + "<br/>"
+            #Page += "<a href='/api/report' class = 'ApiApp'>REPORT</a>" + "<br/>"
+            Page += "<a href='/api/status_report' class = 'ApiApp'>Change Status</a>" + "<br/>"
+            #Page += '<form action="/api/report method="post" enctype="multipart/form-data">'
+            #Page += '<input type="button" onclick="online" name="status" value="Go Online">'
+            #Page += '<input type="button" onclick="offline" name="status" value="Go Offline">'
+            #Page += '<input type="button" onclick="busy" name="status" value="Appear Busy">'    
+            #Page += '<input type="button" onclick="away" name="status" value="Appear Away"></form>'
+            #Page += 'Password : <input type="password" name="password"/><br/>'
+            #Page += '<input type="submit" value="Change"/></form>'
+
+
+            #Page += '<form action="/api/report" method="post" enctype="multipart/form-data">'
+            """Page += '<select name="Status" method="post" enctype="multipart/form-data">'
+            Page += '<option value="online">Online</option>'
+            Page += '<option value="offline">Offline</option>'
+            Page += '<option value="busy">Busy</option>'
+            Page += '<option value="away">Away</option>'
+            Page += 
+            Page += '</select></form>'"""
+
+
+            Page += "<a href='/api/list_users' class = 'ApiApp'>Online Users</a>"
+            Page += "   Check who is online, and drop a message"  + "<br/>"
+            #Page += "<a href='/api/get_loginserver_record' class = 'ApiApp'>Load Certificate</a>" + "<br/>"
+            #Page += "<a href='/api/pubkeys' class = 'ApiApp'>Configure Public Keys</a>" + "<br/>"
+            Page += "<a href='/api/config_privdata' class = 'ApiApp'>Configure Private Keys</a>" 
+            Page += "   Update your private information" + "<br/>"
+            Page += "<a href='/api/private_message' class = 'ApiApp'>Private Messaging Page</a>" + "<br/>"
             Page += "<a href='/api/tweeter' class = 'ApiApp'>TWEETER</a>"
+            Page += "   Check the latest broadcasts from your peers"
             #Page += "<body> Status MUST be either 'offline', 'online', 'busy' or 'away' or blank </body>" + "<br/>"
             #Page += '<form action="/api/report" class="ApiApp" method="post" enctype="multipart/form-data">'
             #Page += '<input type="text" name="status"/>'
@@ -78,10 +103,12 @@ class MainApp(object):
             Api.Api.ping_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('public_key'),cherrypy.session.get('private_key'))
             Api.Api.report_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('status'),cherrypy.session.get('public_key'))
             cherrypy.session['login_record'] = Api.Api.get_loginserver_record_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'))
+            print(cherrypy.session.get('api_key'))
+            print("Private Key: " + cherrypy.session.get('private_key'))
             Page += "<a href='/signout'>Sign out</a>"
         except KeyError: #There is no username
             
-            Page += "<center>Click here to <a href='login'>login</a>.</center>"
+            Page += "<center>Click here to <a href='/login'>login</a>.</center>"
         return Page
         
     @cherrypy.expose
@@ -92,7 +119,7 @@ class MainApp(object):
             
         Page += '<form action="/signin" method="post" enctype="multipart/form-data">'
         Page += 'Username: <input type="text" name="username"/><br/>'
-        Page += 'Password : <input type="text" name="password"/><br/>'
+        Page += 'Password : <input type="password" name="password"/><br/>'
         Page += '<input type="submit" value="Login"/></form>'
         return Page
     
@@ -105,12 +132,12 @@ class MainApp(object):
     def load_info(self):
         Page = startHTML + "<h1><center>| Your Secure Social Network |</center></h1><br/>" 
         try:
-            Page += "Load previous session keys"
+            Page += "Enter Unique Password"
             Page += '<form action="/api/get_privatedata" class = "ApiApp" method="post" enctype="multipart/form-data">'
             Page += '<input type="text" name="box_password"/>'
-            Page += '    <input type="submit" value="RECOVER"/></form>'
-            Page += "Generate new session keys" + "<br/>"
-            Page += "<a href='/api/add_pubkey' class = 'ApiApp'> Generate Key Pair</a>" + "<br/>"
+            Page += '    <input type="submit" value="Enter"/></form>'
+            Page += "Forgotten Password" + "<br/>"
+            Page += "<a href='/api/add_pubkey' class = 'ApiApp'> Make New Unique Password</a>" + "<br/>"
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         except:
             print('txt')
@@ -213,21 +240,31 @@ class ApiApp(object):
     def report(self, status=None):
         Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
         print(status)
+        
         if status == "" or status == None:
             status = "online"
+        """cherrypy.session["report_response"] = Api.Api.report_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),status,cherrypy.session.get('public_key'))
+        if cherrypy.session.get('report_response') == "error":
+            print("ERRROR")
+            raise cherrypy.HTTPRedirect('/api/status_report')"""
         try:
             Page += "Hello " + cherrypy.session['username'] + "!<br/>"
-            Api.Api.report_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),status,cherrypy.session.get('public_key'))
+            try:
+                Api.Api.report_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),status,cherrypy.session.get('public_key'))
+                cherrypy.session["report_response"] = "successful"
+            except:
+                cherrypy.session["report_response"] = "error"
+                raise cherrypy.HTTPRedirect('/api/status_report')
             cherrypy.session['status'] = status
             if status == "offline":
-                raise cherrypy.HTTPRedirect("/signout class = 'MainApp'" )
-                
+                raise cherrypy.HTTPRedirect('/signout' )
+            
             Page += "<br/>"
             Page += "<body>You have successfully reported to the sever!</body>" + "<br/>" + "<br/>"
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         except KeyError: #There is no username
             
-            Page += "<center>Click here to <a href='login' class = 'MainApp'>login</a> and report to other clients.</center>"
+            Page += "<center>Click here to <a href='/login' class = 'MainApp'>login</a> and report to other clients.</center>"
         return Page
 
     @cherrypy.expose
@@ -247,7 +284,7 @@ class ApiApp(object):
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         except KeyError: #There is no username
             
-            Page += "<center>Click here to <a href='login' class = 'MainApp'>login</a> and access list_apis.</center>"
+            Page += "<center>Click here to <a href='/login' class = 'MainApp'>login</a> and access list_apis.</center>"
         return Page
 
     @cherrypy.expose
@@ -286,16 +323,18 @@ class ApiApp(object):
             Page += str(login_record) + "<br/>"
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         except KeyError: #There is no username
-            Page += "<center>Click here to <a href='login'>login</a>.</center>"
+            Page += "<center>Click here to <a href='/login'>login</a>.</center>"
         return Page  
 
 
     @cherrypy.expose
-    def status_report(self):
+    def status_report(self, response=None):
         Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
 
         try:
             Page += "Hello " + cherrypy.session['username'] + "!<br/>"
+            if cherrypy.session.get('report_response') == "error":
+                Page += "<font color='blue'>INVALID status!</font>" + "<br/>"
             Page += "<br/>"
             Page += "<body> Update your status in the textbox below!" + "<br/>"
             Page += "<body> Status MUST be either 'offline', 'online', 'busy' or 'away' or blank </body>" + "<br/>"
@@ -304,7 +343,7 @@ class ApiApp(object):
             Page += ' <input type="submit" value=" Status Report "/></form>'
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         except KeyError: #There is no username
-            Page += "<center>Click here to <a href='login'>login</a>.</center>"
+            Page += "<center>Click here to <a href='/login'>login</a>.</center>"
         return Page  
     
     @cherrypy.expose
@@ -332,7 +371,7 @@ class ApiApp(object):
             Page += "<br/>"
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         except KeyError: #There is no username
-            Page += "<center>Click here to <a href='login'>login</a>.</center>"
+            Page += "<center>Click here to <a href='/login'>login</a>.</center>"
         return Page 
 
     @cherrypy.expose
@@ -347,7 +386,7 @@ class ApiApp(object):
             #Page += "Login Server Record: " + str(cherrypy.session.get('login_record'))
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         except KeyError: #There is no username
-            Page += "<center>Click here to <a href='login'>login</a>.</center>"
+            Page += "<center>Click here to <a href='/login'>login</a>.</center>"
         return Page 
     
 
@@ -363,7 +402,7 @@ class ApiApp(object):
             #Page += "Login Server Record: " + str(cherrypy.session.get('login_record'))
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         except KeyError: #There is no username
-            Page += "<center>Click here to <a href='login'>login</a>.</center>"
+            Page += "<center>Click here to <a href='/login'>login</a>.</center>"
         return Page 
 
 
@@ -383,13 +422,15 @@ class ApiApp(object):
             Page += cherrypy.session.get('public_key') + "<br/>"
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         except KeyError: #There is no username
-            Page += "<center>Click here to <a href='login'>login</a>.</center>"
+            Page += "<center>Click here to <a href='/login'>login</a>.</center>"
         return Page 
 
 
     @cherrypy.expose
     def config_privdata(self):
         Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
+
+        ApiApp.display_privatemessage(self)
         try:
             Page += "Hello " + cherrypy.session['username'] + "!<br/>"
             Page += "<br/>"
@@ -404,7 +445,7 @@ class ApiApp(object):
             #Page += "Login Server Record: " + str(cherrypy.session.get('login_record'))
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         except KeyError: #There is no username
-            Page += "<center>Click here to <a href='login'>login</a>.</center>"
+            Page += "<center>Click here to <a href='/login'>login</a>.</center>"
         return Page 
 
 
@@ -421,7 +462,7 @@ class ApiApp(object):
             Page += "<br/>"
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         except KeyError: #There is no username
-            Page += "<center>Click here to <a href='login'>login</a>.</center>"
+            Page += "<center>Click here to <a href='/login'>login</a>.</center>"
         return Page 
         #Page += "<a href='/api/list_users' class = 'ApiApp'>List Online Users</a>"
 
@@ -435,7 +476,7 @@ class ApiApp(object):
             Page += str(cherrypy.session.get('private_key')) + "<br/>"
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         except KeyError: #There is no username
-            Page += "<center>Click here to <a href='login'>login</a>.</center>"
+            Page += "<center>Click here to <a href='/login'>login</a>.</center>"
         return Page 
 
 
@@ -580,6 +621,7 @@ class ApiApp(object):
         Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
         #Api.Api.rx_broadcast(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('private_key'),cherrypy.session.get('login_record'),message)
         try:
+            #print(cherrypy.session.get('private_key'))
             Page += "Hello " + cherrypy.session['username'] + "!<br/>"
             Page += "<br/>"
             Page += '<form action="/api/tx_privatemessage" class = "ApiApp" method="post" enctype="multipart/form-data">'
@@ -615,16 +657,17 @@ class ApiApp(object):
             Page += "<center> <body> you have failed to broadcast </body> </center>"
         return Page
 
-    @cherrypy.expose
+    
     @cherrypy.tools.json_out()
     @cherrypy.tools.json_in()
+    @cherrypy.expose
     def rx_privatemessage(self):
         #header_user = cherrypy.request.headers["X-username"]
         """try: 
             data.data.create_broadcast_table(self)
         except sqlite3.OperationalError:
             print("Table already created")"""
-        
+        print("PRIVATE KEY: " + str(cherrypy.session.get('private_key')))
         header_user = json.dumps(str(cherrypy.request.body.headers.get('X-username')))
         header_apikey =json.dumps(str(cherrypy.request.body.headers.get('X-apikey')))
         #header_apikey = cherrypy.request.headers["X-apikey"]
@@ -635,11 +678,13 @@ class ApiApp(object):
         except:
             response = "Invalid user"
             return response
+        
         target_pubkey = cherrypy.request.json["target_pubkey"]
         target_username = cherrypy.request.json["target_username"]
         encrypted_message = cherrypy.request.json["encrypted_message"]
         loginrecord = cherrypy.request.json["loginserver_record"]
         timestamp = cherrypy.request.json["sender_created_at"]
+        signature_pm = cherrypy.request.json["signature"]
         info = loginrecord.split(",")
         user_pubkey = info[1]
         user_name = info[0]
@@ -650,16 +695,56 @@ class ApiApp(object):
         print("From : " + user_name + " at " + timestamp) 
         print("Message: " + encrypted_message)
         #r_header = json.dumps(str(cherrypy.request.body.headers.get('X-username')))
-        r_broadcast = json.dumps(cherrypy.request.body.read().decode('utf-8'))
-        print(r_broadcast)
-        data.data.update_broadcast(self,user_name,user_pubkey,message,timestamp)
+        body = json.dumps(cherrypy.request.body.read().decode('utf-8'))
+        print(body)
+
+        try:
+            data.data.create_private_table(self)
+        except:
+            print("ALREADY CREATED DATABASE")
+
+        #try:
+        try:
+            print(user_name)
+            data.data.update_private_table(self,user_name,target_username,target_pubkey,timestamp,encrypted_message,signature_pm)
+        except:
+            print("data insert ERROR")
         
+        #
+        #privkey = requests.Session()
+        #privkey = cherrypy.session.get("private_key")
+        #print(cherrypy.session.get("private_key"))
+        #privkey = (cherrypy.session.get("private_key")) 
+        #print("Private Key: ")
+        #privkey = Api.Api.decode_privatedata(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),"1234")
+        #Api.Api.decrypt_private_message(self,privkey,encrypted_message)
+
+        #
+        # data.data.update_broadcast(self,user_name,user_pubkey,message,timestamp)
+        #ApiApp.display_privatemessage(self)
+
         response = {
            "response: ok"
         }
         response = json.dumps(str(response))
         return response
         
+    @cherrypy.expose
+    def display_privatemessage(self):
+        sender,messages,timestamp = data.data.get_private_messages(self,cherrypy.session.get('username'))
+
+        for i in range(len(sender)):
+            print("Sender: " + sender[i])
+            #print(sender)
+            decrypted_msg = Api.Api.decrypt_private_message(self,cherrypy.session.get('private_key'),messages[i])
+            print(decrypted_msg)
+            print(timestamp[i])
+            
+        
+        
+        
+
+
 
 
 

@@ -212,11 +212,13 @@ class data(object):
         c = conn.cursor()
         #create table
         try:
-            c.execute("CREATE TABLE private_message (username TEXT NOT NULL, target_publickey TEXT, connection_updated_at REAL ,messages TEXT, signature_pm)")
+            c.execute("CREATE TABLE private_messages (username TEXT NOT NULL, target_user TEXT NOT NULL, target_publickey TEXT, sender_created_at REAL ,messages TEXT, signature_pm TEXT)")
         except: 
             response = {
                 "reponse: Database already created"
             }
+        
+
 
         print(str(response))           
 
@@ -229,5 +231,66 @@ class data(object):
 
         
         conn.close()
+
+    def update_private_table(self,sender,t_user,t_pubkey,timestamp,message,signature_pm):
+        conn = sqlite3.connect("server_database.db")
+        #users = []
+        #get the cursor (this is what is used to interact)
+        c = conn.cursor()
+
+        #c.execute("SELECT t_user from private_message")
+        #print("YOOOOOOOOOOOOOOOOOOOOOOOOOOOZA")
+        #rows = c.fetchall()
+
+        #for i in range(len(total_users)):
+         #   if total_users
+
+
+        #try:
+        c.execute("insert into private_messages (username, target_user,target_publickey, sender_created_at, messages,signature_pm) values (?,?,?,?,?,?)", (sender,t_user,t_pubkey,timestamp,message,signature_pm))
+        #except:     
+        print("ALREADY INSERTED")
+        
+        conn.commit()
+
+        response = {
+            "response: ok"
+        }
+
+        print(str(response))
+        conn.close()
+    
+    def get_private_messages(self,user):
+        messages = []
+        timestamp = []
+        sender = []
+        print(user)
+
+
+        conn = sqlite3.connect("server_database.db")
+
+        c = conn.cursor()
+
+        c.execute("SELECT target_user,messages,sender_created_at,username FROM PRIVATE_MESSAGES")
+        rows = c.fetchall()
+
+        for row in rows:
+            if row[0] == user:
+                messages.append(row[1])
+                timestamp.append(row[2])
+                sender.append(row[3])
+        
+        conn.commit()
+
+        response = {
+            "response: ok"
+        }
+
+        print(str(response))
+        conn.close()
+
+        return sender,messages,timestamp
+
+
 
 

@@ -38,6 +38,41 @@ a:link, a:visited {
     color: white;
   }
 
+  .button {
+    background-color: #4CAF50; /* Green */
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+  }
+
+  .submit {
+    background-color: #4CAF50; /* Green */
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+  }
+
+  p.b {
+    font-style: italic;
+  }
+
+  input[type=button], input[type=submit], input[type=reset] {
+    background-color:white;
+    border: orange;
+    color: black;
+    padding: 8px 16px;
+    text-decoration: none;
+    margin: 4px 2px;
+    cursor: pointer;
+  }
 /*a:link {
     background-color: #ffba24;
     color: black;

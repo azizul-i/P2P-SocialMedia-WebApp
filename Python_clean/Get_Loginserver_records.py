@@ -6,7 +6,7 @@ import nacl.signing
 import time
 
 class Serverkey(object):
-    def get_loginrecord(self,username,password):
+    def get_loginrecord(self):
         # endpoint and credentials
         url = "http://cs302.kiwi.land/api/get_loginserver_record"
         username = "misl000"
