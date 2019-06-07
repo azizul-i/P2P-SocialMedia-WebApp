@@ -4,15 +4,18 @@ import base64
 import nacl.encoding
 import nacl.signing
 import nacl.pwhash
-
+import sqlite3
 import nacl.secret
 import time
+import data
+import socket
 
 
 class Api(object):
     def ping_EP(self, username, api_key,publickey,privatekey):
         url = "http://cs302.kiwi.land/api/ping"
 
+        error = []
         # Need to check with Hammond
         #self = "name"
         # Should be inputed from personal web api
@@ -26,23 +29,32 @@ class Api(object):
         #privatekey = "2a4ec0f5a1edeca10c344b9d3558fb4cb411be6006c086252f3042a92434cf29"
 
         # Creates a signing key from encoded private key
-        signing_key = nacl.signing.SigningKey(privatekey, encoder=nacl.encoding.HexEncoder)
+        try:
+            signing_key = nacl.signing.SigningKey(privatekey, encoder=nacl.encoding.HexEncoder)
+        except:
+            error.append("invalid_privkey")
 
+        try:
         # Creates a message to be signed (pubkey)
-        signatureMessage = bytes(publickey, encoding = 'utf-8')
+            signatureMessage = bytes(publickey, encoding = 'utf-8')
 
         # Signs message using signing key and encodes it
-        signedMessage = signing_key.sign(signatureMessage, encoder=nacl.encoding.HexEncoder)
+            signedMessage = signing_key.sign(signatureMessage, encoder=nacl.encoding.HexEncoder)
 
         # Decodes it into string 
-        signature_str = signedMessage.signature.decode('utf-8')
+            signature_str = signedMessage.signature.decode('utf-8')
         
-        
+        except:
+            publickey = "None"
+            signature_str = "None"
+            error.append("incorrect_pubkey_sign")
+
 
 
         # create HTTP BASIC authorization header
         #credentials = ('%s:%s' % (username, password))
         #b64_credentials = base64.b64encode(credentials.encode('ascii'))
+        
         headers = {
             #'Authorization': 'Basic %s' % b64_credentials.decode('ascii'),
             
@@ -52,6 +64,7 @@ class Api(object):
             #'X-signature': signature_str,
             
         }
+            
 
         payload = {
             
@@ -75,7 +88,6 @@ class Api(object):
             encoding = response.info().get_content_charset('utf-8')
             response.close()
         except urllib.error.HTTPError as error:
-            print(error.read())
             exit()
 
         JSON_object = json.loads(data.decode(encoding))
@@ -92,12 +104,15 @@ class Api(object):
         #pubkey = "c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
 
         # connections
-        connection_address = "127.0.0.1:8080"
+        hostname = socket.gethostname()
+        ip = socket.gethostbyname(hostname)
+        connection_address = "192.168.87.21:8080"
         connection_location = "2"
 
         # create HTTP BASIC authorization header
         #credentials = ('%s:%s' % (username, password))
-        #b64_credentials = base64.b64encode(credentials.encode('ascii'))
+        #b64_credentials = base64.b64encode(creden
+        # tials.encode('ascii'))
         headers = {
             #'Authorization': 'Basic %s' % b64_credentials.decode('ascii'),
             'X-username': username,
@@ -234,7 +249,7 @@ class Api(object):
 
         }
 
-
+            
         # 1. convert the payload into json representation,
         payload_str = json.dumps(payload)
         
@@ -272,6 +287,7 @@ class Api(object):
             updated_time.append(users[record]["connection_updated_at"])
             publickey.append(users[record]["incoming_pubkey"])
             status.append(users[record]["status"])
+
 
         return username, connection_address,connection_location,updated_time,publickey,status
         #print(username)
@@ -547,7 +563,7 @@ class Api(object):
         box = nacl.secret.SecretBox(symmetric_key)
         plaintext = box.decrypt(message,nonce=None, encoder=nacl.encoding.Base64Encoder)
         print(str(plaintext))
-        tmp = json.loads((plaintext))
+        tmp = json.loads(str(plaintext.decode('utf-8')))
         #tmp_dict = dict(tmp)
         #p_keys = ','.join(map(str,tmp["prikeys"]))
         #print(p_keys)
@@ -638,19 +654,18 @@ class Api(object):
         return publicKey,private_key.decode('utf-8')
 
 
-    def rx_broadcast(self,username,api_key, privatekey, loginrecord ,message):
+    def rx_broadcast(self,username,api_key, privatekey, loginrecord ,message, connection_address):
         """Use this API to transmit a signed broadcast between users. You need to be
            authenticated, and the broadcast public key must be known, but the broadcast public key
            need not be associated to your account."""
 
         # replace URL with specific connection
         #url = "http://cs302.kiwi.land/api/rx_broadcast"
-
-        url = "http://127.0.0.1:8080/listen/rx_broadcast"
+        print(connection_address)
+        url = "http://" + connection_address + "/api/rx_broadcast"
         #username = "misl000"
         #password = "misl000_171902940"
-        
-
+    
         # Load public and private keys
         #publickey = "c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
 
@@ -709,7 +724,6 @@ class Api(object):
             exit()
 
         JSON_object = json.loads(data.decode(encoding))
-        print("IT WORKS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         print(JSON_object)
 
     def rx_privatemessage(self,username,apikey,pubkey,privkey,login_record, t_user, t_pubkey,t_message):
@@ -791,5 +805,64 @@ class Api(object):
         JSON_object = json.loads(data.decode(encoding))
         print(JSON_object)
 
+    def tx_ping_check_EP(self, username, api_key, connection_address, connection_location):
+        url = "http://172.23.73.212:1234/api/ping_check"
+
+        # Credentials use server to update
+        #username = "misl000"
+        #password = "misl000_171902940"
+
+        # current public key
+        #pubkey = "c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
+
+        # connections
+        connection_address = "172.23.13.81:8080"
+        connection_location = "2"
+        my_time = str(time.time())
+
+        # create HTTP BASIC authorization header
+        #credentials = ('%s:%s' % (username, password))
+        #b64_credentials = base64.b64encode(creden
+        # tials.encode('ascii'))
+        headers = {
+            #'Authorization': 'Basic %s' % b64_credentials.decode('ascii'),
+            'X-username': username,
+            'X-apikey': api_key,
+            'Content-Type': 'application/json; charset=utf-8',
+
+            
+        }
+
+        payload = {
+
+            "my_time": my_time,
+            "connection_address": connection_address,
+            "connection_location": connection_location,
+
+
+        }
+
         
+        # 1. convert the payload into json representation,
+        payload_str = json.dumps(payload)
+
+        # 2. ensure the payload is in bytes, not a string
+        json_payload = payload_str.encode('utf-8')
+
+        # 3. pass the payload bytes into this function
+        try:
+            req = urllib.request.Request(url, data=json_payload, headers=headers)
+            response = urllib.request.urlopen(req)
+            data = response.read()  # read the received bytes
+            # load encoding if possible (default to utf-8)
+            encoding = response.info().get_content_charset('utf-8')
+            response.close()
+        except urllib.error.HTTPError as error:
+            print(error.read())
+            exit()
+
+        JSON_object = json.loads(data.decode(encoding))
+        #print(status)
+        print(JSON_object)
+
        

@@ -14,27 +14,38 @@ class Ping(object):
 
         # Need to check with Hammond
         #self = "name"
+        error = []
         # Should be inputed from personal web api
         username = "misl000"
         password = "misl000_171902940"
 
 
-        publickey = "c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
-
+        #publickey = "c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
+        publickey = ""
         # Utilise get private data endpoint
-        privatekey = "2a4ec0f5a1edeca10c344b9d3558fb4cb411be6006c086252f3042a92434cf29"
+        #privatekey = "2a4ec0f5a1edeca10c344b9d3558fb4cb411be6006c086252f3042a92434cf29"
+        privatekey = ""
 
-        # Creates a signing key from encoded private key
-        signing_key = nacl.signing.SigningKey(privatekey, encoder=nacl.encoding.HexEncoder)
+        try:
+            signing_key = nacl.signing.SigningKey(privatekey, encoder=nacl.encoding.HexEncoder)
+        except:
+            error.append("Invalid_privkey")
 
+        try:
         # Creates a message to be signed (pubkey)
-        signatureMessage = bytes(publickey, encoding = 'utf-8')
+            signatureMessage = bytes(publickey, encoding = 'utf-8')
 
         # Signs message using signing key and encodes it
-        signedMessage = signing_key.sign(signatureMessage, encoder=nacl.encoding.HexEncoder)
+            signedMessage = signing_key.sign(signatureMessage, encoder=nacl.encoding.HexEncoder)
 
         # Decodes it into string 
-        signature_str = signedMessage.signature.decode('utf-8')
+            signature_str = signedMessage.signature.decode('utf-8')
+        
+        except:
+            publickey = "None"
+            signature_str = "None"
+            error.append("incorrect_pubkey_sign")
+
         
         
 

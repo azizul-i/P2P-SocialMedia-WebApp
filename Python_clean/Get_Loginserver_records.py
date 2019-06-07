@@ -9,8 +9,8 @@ class Serverkey(object):
     def get_loginrecord(self,username,password):
         # endpoint and credentials
         url = "http://cs302.kiwi.land/api/get_loginserver_record"
-        #username = "misl000"
-        #password = "misl000_171902940"
+        username = "misl000"
+        password = "misl000_171902940"
 
 
         
@@ -48,5 +48,5 @@ class Serverkey(object):
 
         JSON_object = json.loads(data.decode(encoding))
      
-        print(JSON_object)
+        #print(JSON_object)
         return JSON_object["loginserver_record"]

@@ -8,17 +8,19 @@ import time
 class Serverkey(object):
 
         # endpoint and credentials
-        time = str(time.time())
-        url = "http://cs302.kiwi.land/api/ping_check"
-        my_time = time
-        #my_active_usernames =
-        connection_address = "0.0.0.0:6547"
-        connection_location = "2"
+        url = "http://172.23.13.81:8080/api/ping_check"
+
+        # Credentials use server to update
         username = "misl000"
         password = "misl000_171902940"
 
+        # current public key
+        #pubkey = "c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
 
-
+        # connections
+        connection_address = "172.23.13.81:8080"
+        connection_location = "2"
+        my_time = str(time.time())
 
         # create HTTP BASIC authorization header
         credentials = ('%s:%s' % (username, password))
@@ -30,17 +32,18 @@ class Serverkey(object):
         }
 
         payload = {
-            'my_time': my_time,
-            'connection_address': connection_address,
-            'connection_location': connection_location,
+
+            "my_time": my_time,
+            "connection_address": connection_address,
+            "connection_location": connection_location,
 
 
         }
 
-
+        
         # 1. convert the payload into json representation,
         payload_str = json.dumps(payload)
-        
+
         # 2. ensure the payload is in bytes, not a string
         json_payload = payload_str.encode('utf-8')
 
@@ -57,4 +60,5 @@ class Serverkey(object):
             exit()
 
         JSON_object = json.loads(data.decode(encoding))
+        #print(status)
         print(JSON_object)

@@ -16,9 +16,15 @@ import cherrypy
 
 import server
 
+import socket
+
+
+#hostname = socket.gethostname()
+#LISTEN_IP = socket.gethostbyname(hostname)
 
 # The address we listen for connections on
-LISTEN_IP = "127.0.0.1"
+
+LISTEN_IP = "192.168.87.21"
 #LISTEN_PORT = 1234
 LISTEN_PORT = 8080
 
@@ -44,7 +50,7 @@ def runMainApp():
             'tools.staticdir.dir': 'static',
         },
 
-        '/api': {
+        '/api/': {
             'tools.staticdir.root': os.getcwd(),
             'tools.encode.on': True, 
             'tools.encode.encoding': 'utf-8',
@@ -57,7 +63,7 @@ def runMainApp():
             # 'tools.sessions.storage_path': '/tmp/mysessions',
         },
 
-                '/listen': {
+        '/server/': {
             'tools.staticdir.root': os.getcwd(),
             'tools.encode.on': True, 
             'tools.encode.encoding': 'utf-8',
@@ -83,16 +89,19 @@ def runMainApp():
         'base_path': os.getcwd()
     }
 
+    #cherrypy.session['port'] = LISTEN_PORT
+
     # Create an instance of MainApp and tell Cherrypy to send all requests under / to it. (ie all of them)
     cherrypy.tree.mount(server.MainApp(), "/", conf)
-    cherrypy.tree.mount(server.ApiApp(), "/api/", conf)
-    cherrypy.tree.mount(server.ClientApiApp(), "/listen/", conf)
+    cherrypy.tree.mount(server.ApiApp(), "/api", conf)
+    cherrypy.tree.mount(server.ClientApiApp(), "/server", conf)
 
     # Tell cherrypy where to listen, and to turn autoreload on
     cherrypy.config.update({'server.socket_host': LISTEN_IP,
                             'server.socket_port': LISTEN_PORT,
                             'engine.autoreload.on': True,
                            })
+   # cherrypy.quickstart()
 
     #cherrypy.tools.auth = cherrypy.Tool('before_handler', auth.check_auth, 99)
 
@@ -107,6 +116,8 @@ def runMainApp():
 
     # And stop doing anything else. Let the web server take over.
     cherrypy.engine.block()
+
+    
  
 #Run the function to start everything
 if __name__ == '__main__':

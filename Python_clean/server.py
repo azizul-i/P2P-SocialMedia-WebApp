@@ -2,17 +2,20 @@ import cherrypy
 #import ping
 #import report
 #import broadcast
+import datetime
 import Api
-import load_new_apikey
-import urllib.request
+import data
+#import load_new_apikey
+#import urllib.request
+import sqlite3
 import json
 import base64
 import nacl.encoding
 import nacl.signing
 import nacl.pwhash
 import nacl.secret
-import requests
 import time
+import data
 
 #import add_pubkey
 
@@ -20,12 +23,17 @@ import time
 startHTML = "<html><head><title>CS302 example</title><link rel='stylesheet' href='/static/example.css'/><meta http-equiv='refresh' content='60'> </head><body>"
 
 class MainApp(object):
-
+    
 	#CherryPy Configuration
     _cp_config = {'tools.encode.on': True, 
                   'tools.encode.encoding': 'utf-8',
                   'tools.sessions.on' : 'True',
                  }       
+
+
+
+    #cherrypy.session["broadcast_user"] = broadcast_user
+    #cherrypy.session["broadcast_"]
 
 	# If they try somewhere we don't know, catch it here and send them to the right place.
     @cherrypy.expose
@@ -55,16 +63,18 @@ class MainApp(object):
             Page += "<a href='/api/pubkeys' class = 'ApiApp'>Configure Public Keys</a>" + "<br/>"
             Page += "<a href='/api/config_privdata' class = 'ApiApp'>Configure Private Keys</a>" + "<br/>"
             Page += "<a href='/api/private_message' class = 'ApiApp'>Private Messaging Page</a>"
+            Page += "<a href='/api/tweeter' class = 'ApiApp'>TWEETER</a>"
             #Page += "<body> Status MUST be either 'offline', 'online', 'busy' or 'away' or blank </body>" + "<br/>"
             #Page += '<form action="/api/report" class="ApiApp" method="post" enctype="multipart/form-data">'
             #Page += '<input type="text" name="status"/>'
             #Page += ' <input type="submit" value=" Status Report "/></form>'
             
-            Page += '<form action="/api/rx_broadcast" method="post" enctype="multipart/form-data">'
+            Page += '<form action="/api/tx_broadcast" method="post" enctype="multipart/form-data">'
             Page += '<input type="text" name="message"/>'
             Page += ' <input type="submit" value=" TWEET! "/></form>'
             # REMEMBER TO UNCOMMENT THIS LINE WHEN SERVER IS ONLINE
             #ClientApiApp.rx_broadcast(self)
+            ApiApp.list_users(self)
             Api.Api.ping_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('public_key'),cherrypy.session.get('private_key'))
             Api.Api.report_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('status'),cherrypy.session.get('public_key'))
             cherrypy.session['login_record'] = Api.Api.get_loginserver_record_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'))
@@ -145,6 +155,7 @@ class MainApp(object):
         raise cherrypy.HTTPRedirect('/')
 
 
+    
 
 
        
@@ -165,7 +176,7 @@ def authoriseUserLogin(self,username, password):
         print("Failure")
         return 1
 
-
+  
 
 class ApiApp(object):
 
@@ -176,17 +187,26 @@ class ApiApp(object):
 
     @cherrypy.expose
     def ping(self):
-        Page = startHTML  
-        Api.Api.ping_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('public_key'),cherrypy.session.get('private_key'))
+        Page = startHTML
+        try:  
+            Api.Api.ping_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('public_key'),cherrypy.session.get('private_key'))
+            response = "You have successfully PINGED to the server!"
+        except: 
+            response = "User must LOG IN, before being able to PING"
+        #if error == "0":
+         #   Page += "<body>You have currently do not have a private key!</body>" + "<br/>" + "<br/>"
+        #else:
         print(cherrypy.session.get('username'))
         try:
             Page += "Hello " + cherrypy.session['username'] + "!<br/>"
             Page += "<br/>"
-            Page += "<body>You have successfully Pinged to the sever!</body>" + "<br/>" + "<br/>"
+            Page += "<body>" + response + "</body>" + "<br/>" + "<br/>"
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         except KeyError: #There is no username
             
-            Page += "<center> <body> you have failed to Ping </body> </center>"
+            Page += "<center> <body> You must LOG IN before begin able to PING! </body> </center>"
+            Page += "<center>Click here to <a href='/login' class = 'MainApp'>login</a> and PING.</center>"
+
         return Page   
 
     @cherrypy.expose
@@ -195,16 +215,19 @@ class ApiApp(object):
         print(status)
         if status == "" or status == None:
             status = "online"
-        Api.Api.report_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),status,cherrypy.session.get('public_key'))
-        cherrypy.session['status'] = status
         try:
             Page += "Hello " + cherrypy.session['username'] + "!<br/>"
+            Api.Api.report_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),status,cherrypy.session.get('public_key'))
+            cherrypy.session['status'] = status
+            if status == "offline":
+                raise cherrypy.HTTPRedirect("/signout class = 'MainApp'" )
+                
             Page += "<br/>"
             Page += "<body>You have successfully reported to the sever!</body>" + "<br/>" + "<br/>"
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         except KeyError: #There is no username
             
-            Page += "<center>Click here to <a href='login'>login</a>.</center>"
+            Page += "<center>Click here to <a href='login' class = 'MainApp'>login</a> and report to other clients.</center>"
         return Page
 
     @cherrypy.expose
@@ -224,26 +247,32 @@ class ApiApp(object):
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         except KeyError: #There is no username
             
-            Page += "<center>Click here to <a href='login'>login</a>.</center>"
+            Page += "<center>Click here to <a href='login' class = 'MainApp'>login</a> and access list_apis.</center>"
         return Page
 
     @cherrypy.expose
     def load_new_apikey(self):
         Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
-        response, apikey = Api.Api.load_new_apikey_EP(self,cherrypy.session.get('username'),cherrypy.session.get('password'))
-        cherrypy.session['api_key'] = apikey
+        #response, apikey = Api.Api.load_new_apikey_EP(self,cherrypy.session.get('username'),cherrypy.session.get('password'))
+        response = "Invalid API key"
+
+        try: 
+            Page += "Hello " + cherrypy.session['username'] + "!<br/>"
+            response, apikey = Api.Api.load_new_apikey_EP(self,cherrypy.session.get('username'),cherrypy.session.get('password'))
+            cherrypy.session['api_key'] = apikey
+        except KeyError:
+            Page += "<center>Click here to <a href='/login' class = 'MainApp'>login</a> and load your apikey.</center>"
+    
         if response == "ok":
-            try:
-                Page += "Hello " + cherrypy.session['username'] + "!<br/>"
-                Page += "<br/>"
-                Page += "<body>You have successfully loaded a new API key!!</body>" + "<br/>" + "<br/>"
-                #Page += str(api_record) ry signing in or+ "<br/>"
-                Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
-            except KeyError: #There is no username
-                Page += "<center>Click here to <a href='login'>login</a>.</center>"
+            Page += "Hello " + cherrypy.session['username'] + "!<br/>"
+            Page += "<br/>"
+            Page += "<body>You have successfully loaded a new API key!!</body>" + "<br/>" + "<br/>"
+            #Page += str(api_record) ry signing in or+ "<br/>"
+            Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
+            return Page
         else:
-            Page += "Error in identifying user"
-        return Page  
+            #Page += "<body>" + response + "<br/>" + "<br/>"
+            return Page  
 
 
     @cherrypy.expose
@@ -282,6 +311,10 @@ class ApiApp(object):
     def list_users(self):
         Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
         on_usernames, on_connection_address,on_connection_location,on_updated_time,on_publickey,on_status  = Api.Api.list_users_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'))
+
+        data.data.create_database(self)
+        total_users = on_usernames
+ 
         try:
             Page += "Hello " + cherrypy.session['username'] + "!<br/>"
             Page += "<br/>"
@@ -291,8 +324,11 @@ class ApiApp(object):
                 Page += "<body> Connection Location: </body>" + str(on_connection_location[i])  + "<br/>"
                 Page += "<body> Public Key: </body>" + str(on_publickey[i]) + "<br/>"
                 Page += "<body> Connection updated at: </body>" + str(on_updated_time[i])  + "<br/>"
+                #data.data.update_database_users(self,on_usernames[i],on_publickey[i],on_connection_address[i],on_connection_location[i],on_updated_time[i],on_status[i],total_users)
+                
                 #Page 
                 Page += "<br/>"
+            data.data.update_database_users(self,on_usernames,on_publickey,on_connection_address,on_connection_location,on_updated_time,on_status,total_users)
             Page += "<br/>"
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         except KeyError: #There is no username
@@ -402,14 +438,66 @@ class ApiApp(object):
             Page += "<center>Click here to <a href='login'>login</a>.</center>"
         return Page 
 
+
     @cherrypy.expose
-    def rx_broadcast(self, message = None):
+    def tweeter(self):
+        conn = sqlite3.connect("database.db")
         Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
-        Api.Api.rx_broadcast(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('private_key'),cherrypy.session.get('login_record'),message)
+        #get the cursor (this is what is used to interact
+
+        c = conn.cursor()
+        c.execute("SELECT username,publickey,message, sender_created_at from rx_broadcast")
+        rows = c.fetchall()
+
+        
         try:
             Page += "Hello " + cherrypy.session['username'] + "!<br/>"
             Page += "<br/>"
-            Page += "<body>You have successfully broadcasted to the sever!</body>" + "<br/>" + "<br/>"
+            Page += "<center>TWEETS</center>" + "<br/>"
+            for row in rows:
+                print(row[0])
+                Page += "User: " + str(row[0]) + "<br/>"
+                print(row[1])
+                Page += "Public Key: " + str(row[1]) + "<br/>"
+                print(row[2])
+                Page += "Tweet: " + str(row[2]) + "<br/>"
+                print(row[3])
+                time = int(row[3])
+                time_str = datetime.datetime.utcfromtimestamp(time).strftime('%Y-%m-%d %H:%M:%S')
+                Page += "Sent at: " + str(time_str) + "<br/>"
+                Page += "<br/>"
+                Page += "<br/>"
+            Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
+        except KeyError: #There is no username
+            
+            Page += "<center> <body> you have failed to broadcast </body> </center>"
+        return Page
+
+
+    
+
+
+    @cherrypy.expose
+    def tx_broadcast(self, message = None):
+        Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
+        #data.data.
+        #connection_list = []
+        # Implement Network Drop downlist
+
+
+
+        users, connection_list = data.data.get_connection_address(self,"1")
+        for i in range(len(connection_list)):
+            try:
+                Api.Api.rx_broadcast(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('private_key'),cherrypy.session.get('login_record'),message,connection_list[i])
+                print(users[i])
+            except:
+                print("Error")
+                print(users[i])
+        try:
+            Page += "Hello " + cherrypy.session['username'] + "!<br/>"
+            Page += "<br/>"
+            Page += "<body>You have successfully broadcasted to the server!</body>" + "<br/>" + "<br/>"
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         except KeyError: #There is no username
             
@@ -418,13 +506,83 @@ class ApiApp(object):
 
 
     @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @cherrypy.tools.json_in()
+    def rx_broadcast(self):
+        #header_user = cherrypy.request.headers["X-username"]
+        try: 
+            data.data.create_broadcast_table(self)
+        except sqlite3.OperationalError:
+            print("Table already created")
+        
+        header_user = json.dumps(str(cherrypy.request.body.headers.get('X-username')))
+        header_apikey =json.dumps(str(cherrypy.request.body.headers.get('X-apikey')))
+        #header_apikey = cherrypy.request.headers["X-apikey"]
+        print(header_user)
+        print(header_apikey)
+        try:
+            Api.Api.ping_EP(self,header_user,header_apikey,"","")
+        except:
+            response = "Invalid user"
+            return response
+        message = cherrypy.request.json["message"]
+        loginrecord = cherrypy.request.json["loginserver_record"]
+        timestamp = cherrypy.request.json["sender_created_at"]
+        info = loginrecord.split(",")
+        user_pubkey = info[1]
+        user_name = info[0]
+        print("user: " + user_name)
+        print("public key: " + user_pubkey)
+        print("TWEET: " + message)
+        #r_header = json.dumps(str(cherrypy.request.body.headers.get('X-username')))
+        r_broadcast = json.dumps(cherrypy.request.body.read().decode('utf-8'))
+        print(r_broadcast)
+        data.data.update_broadcast(self,user_name,user_pubkey,message,timestamp)
+        
+        response = {
+           "response: ok"
+        }
+        response = json.dumps(str(response))
+        return response
+
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @cherrypy.tools.json_in()
+    def ping_check(self):
+        header_user = json.dumps(str(cherrypy.request.body.headers.get('X-username')))
+        header_apikey =json.dumps(str(cherrypy.request.body.headers.get('X-apikey')))
+        print(header_user)
+        print(header_apikey)
+        response = "Invalid Request"
+        try:
+            Api.Api.ping_EP(self,header_user,header_apikey,"","")
+        except:
+            response = "Invalid user"
+            return response
+        connection_address = cherrypy.request.json["connection_address"]
+        connection_location = cherrypy.request.json["connection_location"]
+        timestamp = cherrypy.request.json["my_time"]
+        print(connection_address)
+        print(connection_location)
+        print(timestamp)
+        response = {
+           "response: ok"
+        }
+        response = json.dumps(str(response))
+        return response
+        
+
+        
+
+    @cherrypy.expose
     def private_message(self):
         Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
         #Api.Api.rx_broadcast(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('private_key'),cherrypy.session.get('login_record'),message)
         try:
             Page += "Hello " + cherrypy.session['username'] + "!<br/>"
             Page += "<br/>"
-            Page += '<form action="/api/rx_privatemessage" class = "ApiApp" method="post" enctype="multipart/form-data">'
+            Page += '<form action="/api/tx_privatemessage" class = "ApiApp" method="post" enctype="multipart/form-data">'
             Page += " Enter target user"
             Page += '    <input type="text" name="t_user"/>' + "<br/>"
             Page += 'Enter targets public key' 
@@ -440,7 +598,7 @@ class ApiApp(object):
         return Page
 
     @cherrypy.expose
-    def rx_privatemessage(self,t_user=None, t_pubkey=None, t_message=None):
+    def tx_privatemessage(self,t_user=None, t_pubkey=None, t_message=None):
         Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
         print(t_user)
         print(t_pubkey)
@@ -457,21 +615,107 @@ class ApiApp(object):
             Page += "<center> <body> you have failed to broadcast </body> </center>"
         return Page
 
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @cherrypy.tools.json_in()
+    def rx_privatemessage(self):
+        #header_user = cherrypy.request.headers["X-username"]
+        """try: 
+            data.data.create_broadcast_table(self)
+        except sqlite3.OperationalError:
+            print("Table already created")"""
+        
+        header_user = json.dumps(str(cherrypy.request.body.headers.get('X-username')))
+        header_apikey =json.dumps(str(cherrypy.request.body.headers.get('X-apikey')))
+        #header_apikey = cherrypy.request.headers["X-apikey"]
+        print(header_user)
+        print(header_apikey)
+        try:
+            Api.Api.ping_EP(self,header_user,header_apikey,"","")
+        except:
+            response = "Invalid user"
+            return response
+        target_pubkey = cherrypy.request.json["target_pubkey"]
+        target_username = cherrypy.request.json["target_username"]
+        encrypted_message = cherrypy.request.json["encrypted_message"]
+        loginrecord = cherrypy.request.json["loginserver_record"]
+        timestamp = cherrypy.request.json["sender_created_at"]
+        info = loginrecord.split(",")
+        user_pubkey = info[1]
+        user_name = info[0]
+        print("user: " + user_name)
+        print("public key: " + user_pubkey)
+        print("target_user: " + target_username)
+        print("target_pubkey: " + target_pubkey)
+        print("From : " + user_name + " at " + timestamp) 
+        print("Message: " + encrypted_message)
+        #r_header = json.dumps(str(cherrypy.request.body.headers.get('X-username')))
+        r_broadcast = json.dumps(cherrypy.request.body.read().decode('utf-8'))
+        print(r_broadcast)
+        data.data.update_broadcast(self,user_name,user_pubkey,message,timestamp)
+        
+        response = {
+           "response: ok"
+        }
+        response = json.dumps(str(response))
+        return response
+        
+
+
+
+
 class ClientApiApp(object):
+    
     _cp_config = {'tools.encode.on': True, 
                   'tools.encode.encoding': 'utf-8',
                   'tools.sessions.on' : 'True',
                  } 
 
-    @cherrypy.expose
+    """ @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @cherrypy.tools.json_in()
     def rx_broadcast(self):
-        Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
-        received_broadcast = json.loads(cherrypy.request.body.read().decode('utf-8'))
-        print(received_broadcast)
+
+
+        header_user = cherrypy.request.headers["X-username"]
+        header_apikey = cherrypy.request.headers["X-apikey"]
+        print(header_user)
+        print(header_apikey)
+        try:
+            Api.Api.ping_EP(self,header_user,header_apikey,"","")
+        except:
+            response = "Invalid user"
+            return response
+        message = cherrypy.request.json["message"]
+        loginrecord = cherrypy.request.json["loginserver_record"]
+        print(message)
+        info = loginrecord.split(",")
+        user_pubkey = info[1]
+        user_name = info[0]
+        print(user_name)
+        print(user_pubkey)
+        r_header = json.dumps(str(cherrypy.request.body.headers.get('X-username')))
+        r_broadcast = json.loads(cherrypy.request.body.read().decode('utf-8'))
+
+        name = r_header
+        record = r_broadcast["loginserver_record"]
+        info = record.split(",")
+        user_pubkey = info[1]
+        #print(info)
+        message = r_broadcast["message"]
+        timestamp = r_broadcast["sender_created_at"]
+        print("RESPONSE RECEIVED!!")
+
+        print("user: " + name)
+        #print(record)
+        print("user key: " + user_pubkey)
+        print("user broadcast: " + message)
+        print("timestamp: " + timestamp)
         response = {
             "response: ok"
         }
-        return json.dumps(response)
+        response = json.dumps(str(response))
+        return response"""
 
 
 
