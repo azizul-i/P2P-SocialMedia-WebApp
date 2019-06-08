@@ -107,8 +107,8 @@ class Api(object):
         # connections
         hostname = socket.gethostname()
         ip = socket.gethostbyname(hostname)
-        connection_address = "172.23.13.81:8080"
-        connection_location = "1"
+        connection_address = "192.168.86.78:10050"
+        connection_location = "2"
 
         # create HTTP BASIC authorization header
         #credentials = ('%s:%s' % (username, password))
@@ -391,7 +391,7 @@ class Api(object):
      
         return JSON_object
 
-    def add_privatedata(self,username,api_key, login_record,privatekey,password): 
+    def add_privatedata(self,username,api_key, login_record,privatekey,password,friend_username=None): 
         """ Use this API to save symmetrically encrypted private data for a given user. It will
             automatically delete previously uploaded private data. """
         url = "http://cs302.kiwi.land/api/add_privatedata"
@@ -418,6 +418,7 @@ class Api(object):
         print(symmetric_key)
         box = nacl.secret.SecretBox(symmetric_key)
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+        prikeys = [str(privatekey)]
         blocked_pubkeys = []
         blocked_usernames = []
         blocked_words = []
@@ -425,16 +426,46 @@ class Api(object):
         favourite_message_signatures = []
         friends_usernames = []
 
+        #keys, record = Api.decode_privatedata(self,username,api_key,password)
+
+        if friend_username != None:
+            try:
+                print("CHECK")
+                keys, record = Api.decode_privatedata(self,username,api_key,password)
+                print("CHECK")
+                blocked_pubkeys = record["blocked_pubkeys"]
+                print("CHECK")
+                blocked_usernames = record["blocked_usernames"]
+                print("CHECK")
+                blocked_words = record["blocked_words"]
+                print("CHECK")
+                blocked_message_signatures = record["blocked_message_signatures"]
+                print("CHECK")
+                favourite_message_signatures = record["favourite_message_signatures"]
+                print("CHECK")
+                friends_usernames = record["friends_usernames"]
+                print("CHECK")
+                prikeys = record["prikeys"]
+                print("CHECK")
+            except:
+                print("------------------------")
+                print("Could not obtain record")
+                print("------------------------")
         
         
+
+
+
+        friends_usernames.append(friend_username)
+
         privatedata = { 
-                        "prikeys": [str(privatekey)],
-                        "blocked_pubkeys": ["...", "..."],
-                        "blocked_usernames": ["...", "..."],
-                        "blocked_words": ["...", "..."],
-                        "blocked_message_signatures": ["...", "..."],
-                        "favourite_message_signatures": ["...", "..."],
-                        "friends_usernames": ["...", "..."]
+                        "prikeys": prikeys,
+                        "blocked_pubkeys": blocked_pubkeys,
+                        "blocked_usernames": blocked_usernames,
+                        "blocked_words": blocked_words,
+                        "blocked_message_signatures": blocked_message_signatures,
+                        "favourite_message_signatures": favourite_message_signatures,
+                        "friends_usernames": friends_usernames
                      }
 
         # Converts private data to string
@@ -570,13 +601,15 @@ class Api(object):
         box = nacl.secret.SecretBox(symmetric_key)
         plaintext = box.decrypt(message,nonce=None, encoder=nacl.encoding.Base64Encoder)
         print(str(plaintext))
-        tmp = json.loads(str(plaintext.decode('utf-8')))
+        private_data = json.loads(str(plaintext.decode('utf-8')))
         #tmp_dict = dict(tmp)
         #p_keys = ','.join(map(str,tmp["prikeys"]))
         #print(p_keys)
-        p_keys = (tmp["prikeys"])
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print(private_data)
+        p_keys = (private_data["prikeys"])
         p_keys = str(p_keys[0])
-        return p_keys
+        return p_keys,private_data
     
     def generate_pubkey(self,privatekey):
 
@@ -721,7 +754,7 @@ class Api(object):
         # 3. pass the payload bytes into this function
         try:
             req = urllib.request.Request(url, data=json_payload, headers=headers)
-            response = urllib.request.urlopen(req, timeout=5)
+            response = urllib.request.urlopen(req, timeout=0.1)
             data = response.read()  # read the received bytes
             # load encoding if possible (default to utf-8)
             encoding = response.info().get_content_charset('utf-8')
@@ -873,7 +906,7 @@ class Api(object):
         # 3. pass the payload bytes into this function
         try:
             req = urllib.request.Request(url, data=json_payload, headers=headers)
-            response = urllib.request.urlopen(req, timeout=5)
+            response = urllib.request.urlopen(req, timeout=0.01)
             data = response.read()  # read the received bytes
             # load encoding if possible (default to utf-8)
             encoding = response.info().get_content_charset('utf-8')

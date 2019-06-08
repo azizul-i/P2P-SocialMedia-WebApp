@@ -2,7 +2,7 @@ import sqlite3
 
 class data(object):
     def create_broadcast_table(self):
-        conn = sqlite3.connect("database.db")
+        conn = sqlite3.connect("secure_database.db")
         c = conn.cursor()
         c.execute("CREATE TABLE rx_broadcast (username TEXT NOT NULL, publickey TEXT NOT NULL, message TEXT NOT NULL, sender_created_at REAL NOT NULL)")
         conn.commit()
@@ -15,7 +15,7 @@ class data(object):
         conn.close()
 
     def update_broadcast(self,username,publickey,message,sender_created_at):
-        conn = sqlite3.connect("database.db")
+        conn = sqlite3.connect("secure_database.db")
 
         #get the cursor (this is what is used to interact)
 
@@ -35,7 +35,7 @@ class data(object):
         conn.close()
     
     def delete_broadcast(self):
-        conn = sqlite3.connect("database.db")
+        conn = sqlite3.connect("secure_database.db")
 
         #get the cursor (this is what is used to interact)
 
@@ -165,7 +165,7 @@ class data(object):
         print(str(response))
         conn.close()
     
-    def get_connection_address(self,connection_location):
+    def get_connection_address(self):
         conn = sqlite3.connect("server_database.db")
         connections = []
         users = []
@@ -198,6 +198,11 @@ class data(object):
 
         print(connections)
 
+        online_connections = {
+            "users": users,
+            "connections": connections
+        }
+
         conn.commit()
 
         response = {
@@ -207,11 +212,42 @@ class data(object):
         print(str(response))
         conn.close()
 
-        return users,connections
+        return online_connections
         #for i in range(len(total_users)):
          #   if total_users 
 
-            
+    def get_all_connections(self):
+        conn = sqlite3.connect("server_database.db")
+        connections = []
+        users = []
+        #get the cursor (this is what is used to interact)
+        c = conn.cursor()
+
+        c.execute("SELECT username,status,connection_address,connection_location from users")
+        rows = c.fetchall()
+
+
+        for row in rows:
+                connections.append(row[2])
+                users.append(row[0])
+
+        print(connections)
+
+        all_connections = {
+            "users": users,
+            "connections": connections
+        }
+
+        conn.commit()
+
+        response = {
+            "response: ok"
+        }
+
+        print(str(response))
+        conn.close()
+
+        return all_connections        
 
         #except:
 
@@ -365,6 +401,51 @@ class data(object):
         conn.close()
 
         return user_record
+
+    def get_broadcasts(self,username=None, filter_type=None):
+        conn = sqlite3.connect("secure_database.db")
+        c = conn.cursor()
+        users = []
+        pubkey = []
+        message = []
+        timestamp = []
+        c.execute("SELECT username,publickey,message, sender_created_at from rx_broadcast ORDER by sender_created_at DESC")
+        rows = c.fetchall()
+        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+        print(filter_type)
+        print(username)
+        print('@@@@@@@@@@@@@@@@@@@@@@@@@@')
+        for row in rows:
+            if filter_type == "username" or filter_type != "none":
+                print("IM NOT SUPPPOSE TO BE HERE")
+                if row[0] == username:
+                    users.append(row[0])
+                    pubkey.append(row[1])
+                    message.append(row[2])
+                    timestamp.append(row[3])
+            else:
+                print("IM SUPPOSE TO BE HERE")
+                users.append(row[0])
+                pubkey.append(row[1])
+                message.append(row[2])
+                timestamp.append(row[3])
+
+        
+        broadcasts = {
+            "users": users,
+            "pubkey": pubkey,
+            "message": message,
+            "timestamp":timestamp
+        }
+
+        print(broadcasts)
+
+        print("UPDATED BROADCASTS")
+        conn.commit()
+        conn.close()
+
+        return broadcasts
+
 
 
 

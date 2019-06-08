@@ -19,14 +19,14 @@ import server
 import socket
 
 
-#hostname = socket.gethostname()
-#LISTEN_IP = socket.gethostbyname(hostname)
+hostname = socket.gethostname()
+LISTEN_IP = socket.gethostbyname(hostname)
 
 # The address we listen for connections on
 
-LISTEN_IP = "172.23.13.81"
+LISTEN_IP = "192.168.86.78"
 #LISTEN_PORT = 1234
-LISTEN_PORT = 8080
+LISTEN_PORT = 10050
 
 def runMainApp():
     #set up the config
