@@ -72,6 +72,7 @@ class data(object):
             response = {
                 "response: Table already modified"
             }
+        conn.close
 
 
         print(str(response))
@@ -98,21 +99,21 @@ class data(object):
         conn.close()
 
     def update_database_users(self,username,publickey,connection_address,connection_location,connection_updated_at,status,total_users):
-        conn = sqlite3.connect("server_database.db")
-        users = []
-        #get the cursor (this is what is used to interact)
-        c = conn.cursor()
 
-        c.execute("SELECT username from users")
-        print("YOOOOOOOOOOOOOOOOOOOOOOOOOOOZA")
-        rows = c.fetchall()
 
         #for i in range(len(total_users)):
          #   if total_users 
 
             
+        #c = conn.cursor()
+        
+        conn = sqlite3.connect("server_database.db")
+        users = []
+    #get the cursor (this is what is used to interact)
         c = conn.cursor()
 
+        c.execute("SELECT username from users")
+        rows = c.fetchall()
         for row in rows:
             c.execute("UPDATE users SET status = ? WHERE username = ?", ("offline",row[0]))
             
@@ -126,6 +127,8 @@ class data(object):
                     c.execute("UPDATE users SET status = ? WHERE username = ?", (status[i],username[i]))
 
             
+        conn.commit()
+        conn.close()
 
 
         """ for row in rows:
@@ -143,12 +146,15 @@ class data(object):
 
         print(users)"""
 
-
-
-        try:
-            c.execute("insert into users (username, publickey,connection_address, connection_location, connection_updated_at,status) values (?,?,?,?,?,?)", (username,publickey,connection_address,connection_location,connection_updated_at,status))
-        except: 
-            print("ALREADY INSERTED")
+        conn = sqlite3.connect("server_database.db")
+        #get the cursor (this is what is used to interact)
+        c = conn.cursor()
+       
+        for i in range(len(username)):
+            try:
+                c.execute("insert into users (username, publickey,connection_address, connection_location, connection_updated_at,status) values (?,?,?,?,?,?)", (username[i],publickey[i],connection_address[i],connection_location[i],connection_updated_at[i],status[i]))
+            except: 
+                print("ALREADY INSERTED")
         
         conn.commit()
 
@@ -169,7 +175,7 @@ class data(object):
         c.execute("SELECT username,status,connection_address,connection_location from users")
         rows = c.fetchall()
 
-        for row in rows:
+        """for row in rows:
             if row[1] == "online":
                 if connection_location == "0":
                     if row[2] == "0":
@@ -183,7 +189,13 @@ class data(object):
                     if row[2] == "0" or row[2] == "1" or row[2] == "2":
                         connections.append(row[2])
                         users.append(row[0]) 
-        
+        """
+
+        for row in rows:
+            if row[1] == "online":
+                connections.append(row[2])
+                users.append(row[0])
+
         print(connections)
 
         conn.commit()
@@ -260,10 +272,11 @@ class data(object):
         print(str(response))
         conn.close()
     
-    def get_private_messages(self,user):
+    def get_private_messages(self,user,on_user):
         messages = []
         timestamp = []
         sender = []
+        publickey = []
         print(user)
 
 
@@ -271,14 +284,15 @@ class data(object):
 
         c = conn.cursor()
 
-        c.execute("SELECT target_user,messages,sender_created_at,username FROM PRIVATE_MESSAGES")
+        c.execute("SELECT target_user,messages,sender_created_at,username,target_publickey FROM PRIVATE_MESSAGES")
         rows = c.fetchall()
 
         for row in rows:
-            if row[0] == user:
+            if (row[0] == user and row[3] == on_user) or (row[0] == on_user and row[3] == user):
                 messages.append(row[1])
                 timestamp.append(row[2])
                 sender.append(row[3])
+                publickey.append(row[4])
         
         conn.commit()
 
@@ -290,6 +304,69 @@ class data(object):
         conn.close()
 
         return sender,messages,timestamp
+    
+    def get_pubkey(self, username):
+        conn = sqlite3.connect("server_database.db")
+        #get the cursor (this is what is used to interact)
+        c = conn.cursor()
+
+
+        c.execute("SELECT username,publickey from users")
+        rows = c.fetchall()
+        for row in rows:
+            if row[0] == username:
+                user_pubkey = row[1]
+        
+        conn.commit()
+
+        response = {
+            "response: ok"
+        }
+
+        print(str(response))
+        conn.close()
+
+        return user_pubkey
+
+    def get_user_record(self, username):
+        conn = sqlite3.connect("server_database.db")
+        #get the cursor (this is what is used to interact)
+        c = conn.cursor()
+        
+
+        c.execute("SELECT username, publickey,connection_address,connection_location,connection_updated_at,status from users")
+        rows = c.fetchall()
+        for row in rows:
+            if row[0] == username:
+                s_username = row[0]
+                user_pubkey = row[1]
+                user_connection_address = row[2]
+                user_connection_location = row[3]
+                user_connection_updated_at = row[4]
+                user_status = row[5]
+        
+
+        
+        user_record = {
+            "username":s_username,
+            "user_pubkey":user_pubkey,
+            "user_connection_address":user_connection_address,
+            "user_connection_location":user_connection_location,
+            "user_connection_updated_at": user_connection_updated_at,
+            "user_status": user_status,
+        }
+        conn.commit()
+
+        response = {
+            "response: ok"
+        }
+
+        print(str(response))
+        conn.close()
+
+        return user_record
+
+
 
 
 

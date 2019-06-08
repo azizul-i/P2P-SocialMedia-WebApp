@@ -267,6 +267,10 @@ class ApiApp(object):
             Page += "<center>Click here to <a href='/login' class = 'MainApp'>login</a> and report to other clients.</center>"
         return Page
 
+    #@cherrypy.expose
+    #def tx_check_ping(self):
+    #    records = data.data
+
     @cherrypy.expose
     def list_apis(self):
         Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
@@ -358,15 +362,18 @@ class ApiApp(object):
             Page += "Hello " + cherrypy.session['username'] + "!<br/>"
             Page += "<br/>"
             for i in range(len(on_usernames)):
-                Page += on_usernames[i] + ": Status= " + str(on_status[i]) + "<br/>"
-                Page += "<body> Connection Address: </body>" + str(on_connection_address[i])  + "<br/>"
-                Page += "<body> Connection Location: </body>" + str(on_connection_location[i])  + "<br/>"
-                Page += "<body> Public Key: </body>" + str(on_publickey[i]) + "<br/>"
-                Page += "<body> Connection updated at: </body>" + str(on_updated_time[i])  + "<br/>"
+                Page += "<a href = online_user?on_user=" + on_usernames[i] + ">" + on_usernames[i] + "</a href>"# + "</br>"
+                Page += "</br>"
+                Page +="Status = " + str(on_status[i]) + "<br/>"
+                #Page += "<body> Connection Address: </body>" + str(on_connection_address[i])  + "<br/>"
+                #Page += "<body> Connection Location: </body>" + str(on_connection_location[i])  + "<br/>"
+                #Page += "<body> Public Key: </body>" + str(on_publickey[i]) + "<br/>"
+                #Page += "<body> Connection updated at: </body>" + str(on_updated_time[i])  + "<br/>"
                 #data.data.update_database_users(self,on_usernames[i],on_publickey[i],on_connection_address[i],on_connection_location[i],on_updated_time[i],on_status[i],total_users)
                 
                 #Page 
                 Page += "<br/>"
+            print(on_usernames)
             data.data.update_database_users(self,on_usernames,on_publickey,on_connection_address,on_connection_location,on_updated_time,on_status,total_users)
             Page += "<br/>"
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
@@ -640,14 +647,23 @@ class ApiApp(object):
         return Page
 
     @cherrypy.expose
-    def tx_privatemessage(self,t_user=None, t_pubkey=None, t_message=None):
-        Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
+    def tx_privatemessage(self, t_message=None):
+        #Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
+        t_user = cherrypy.session.get('target_user')
+        t_pubkey = cherrypy.session.get('target_publickey')
+        sender_record = data.data.get_user_record(self,t_user)
+        print("################################")
         print(t_user)
         print(t_pubkey)
         print(t_message)
-        Api.Api.rx_privatemessage(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('public_key'),cherrypy.session.get('private_key'),cherrypy.session.get('login_record'),t_user,t_pubkey,t_message)
+        print("################################")
+        sent_payload,personal_encrypted_message = Api.Api.rx_privatemessage(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('public_key'),cherrypy.session.get('private_key'),cherrypy.session.get('login_record'),t_user,t_pubkey,t_message,sender_record["user_connection_address"],cherrypy.session.get('public_key'))
+        print("CHEEEEEEEEEEEEEECK")
+        data.data.update_private_table(self,cherrypy.session.get('username'),sent_payload["target_username"],sent_payload["target_pubkey"],sent_payload["sender_created_at"],personal_encrypted_message,sent_payload["signature"])
+        print("ITS IN DA DATABASE")
+        raise cherrypy.HTTPRedirect('/api/online_user?on_user=' + t_user)
         #Api.Api.rx_broadcast(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('private_key'),cherrypy.session.get('login_record'),message)
-        try:
+        """try:
             Page += "Hello " + cherrypy.session['username'] + "!<br/>"
             Page += "<br/>"
             Page += "<body>You have successfully privately messaged </body>" + t_user + "<br/>" + "<br/>"
@@ -655,7 +671,7 @@ class ApiApp(object):
         except KeyError: #There is no username
             
             Page += "<center> <body> you have failed to broadcast </body> </center>"
-        return Page
+        return Page"""
 
     
     @cherrypy.tools.json_out()
@@ -667,6 +683,7 @@ class ApiApp(object):
             data.data.create_broadcast_table(self)
         except sqlite3.OperationalError:
             print("Table already created")"""
+        print("HAVE U RECIEVED IT !!!!!!")
         print("PRIVATE KEY: " + str(cherrypy.session.get('private_key')))
         header_user = json.dumps(str(cherrypy.request.body.headers.get('X-username')))
         header_apikey =json.dumps(str(cherrypy.request.body.headers.get('X-apikey')))
@@ -724,14 +741,15 @@ class ApiApp(object):
         #ApiApp.display_privatemessage(self)
 
         response = {
-           "response: ok"
+           'response' : 'ok'
         }
-        response = json.dumps(str(response))
+        response = json.dumps(response).encode('utf-8')
+
         return response
         
     @cherrypy.expose
-    def display_privatemessage(self):
-        sender,messages,timestamp = data.data.get_private_messages(self,cherrypy.session.get('username'))
+    def display_privatemessage(self,on_user):
+        sender,messages,timestamp = data.data.get_private_messages(self,cherrypy.session.get('username'),on_user)
 
         for i in range(len(sender)):
             print("Sender: " + sender[i])
@@ -739,8 +757,50 @@ class ApiApp(object):
             decrypted_msg = Api.Api.decrypt_private_message(self,cherrypy.session.get('private_key'),messages[i])
             print(decrypted_msg)
             print(timestamp[i])
+        return sender,messages,timestamp
             
+    @cherrypy.expose
+    def online_user(self, on_user=None):
+        Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
+        Page += "<center>User: " + on_user + "</center>"
+        print("XXXXXXXXXXXXXXXXXXXx")
+        print(on_user)
+        print("XXXXXXXXXXXXXXXxXXXX")
+
+        try:
+            sender,messages,timestamp = data.data.get_private_messages(self,cherrypy.session.get('username'),on_user)
+            #last_index = range(len(messages))
+            for i in range(len(messages)):
+                Page += "Sender: " + sender[i] + "<br/>"
+                decrypted_msg = Api.Api.decrypt_private_message(self,cherrypy.session.get('private_key'),messages[i])
+                Page += "Message: " + decrypted_msg + "<br/>"
+                time_str = datetime.datetime.utcfromtimestamp(timestamp[i]).strftime('%Y-%m-%d %H:%M:%S')
+                Page += "Sent at: " + time_str + "<br/>"
+                Page += "<br/>"
+            Page += "<br/>"
+        except: #There is no username
+            
+            Page += "<center> <body> User is not online! </body> </center>"
+
+
+        print("ZZZZZZZZZZZZZZZZZZ")
+        print(sender)
+        print("ZZZZZZZZZZZZZZZZZZ")
+
+        cherrypy.session["target_user"] = on_user
+        cherrypy.session["target_publickey"] = data.data.get_pubkey(self,cherrypy.session.get('target_user'))
+
+        Page += '<form action="/api/tx_privatemessage" class = "ApiApp" method="post" enctype="multipart/form-data">'
+        Page += 'Enter message'
+        Page += '    <input type="text" name="t_message"/>' + "<br/>"
+        Page += '<input type="submit" value=" Send "/></form>'
+        Page += "<br/>"
+        Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         
+        return Page
+
+
+
         
         
 

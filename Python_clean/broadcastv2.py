@@ -20,7 +20,7 @@ class broadcastv2(object):
         # replace URL with specific connection
         #url = "http://cs302.kiwi.land/api/rx_broadcast"
         self = "name"
-        url = "http://192.168.87.21:8080/api/rx_broadcast"
+        url = "http://172.23.13.81:8080/api/rx_broadcast"
         username = "misl000"
         password = "misl000_171902940"
         
@@ -35,7 +35,7 @@ class broadcastv2(object):
         verify_key_hex = verify_key.encode(encoder=nacl.encoding.HexEncoder)
         publicKey = verify_key_hex.decode('utf-8')
 
-        loginrecord = Get_Loginserver_records.Serverkey.get_loginrecord("name",username,password)
+        loginrecord = Get_Loginserver_records.Serverkey.get_loginrecord("name")
         # get timestamp
         sender_created_at = str(time.time())
 

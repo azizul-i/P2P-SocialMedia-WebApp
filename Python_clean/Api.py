@@ -107,8 +107,8 @@ class Api(object):
         # connections
         hostname = socket.gethostname()
         ip = socket.gethostbyname(hostname)
-        connection_address = "192.168.87.21:8080"
-        connection_location = "2"
+        connection_address = "172.23.13.81:8080"
+        connection_location = "1"
 
         # create HTTP BASIC authorization header
         #credentials = ('%s:%s' % (username, password))
@@ -418,6 +418,12 @@ class Api(object):
         print(symmetric_key)
         box = nacl.secret.SecretBox(symmetric_key)
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+        blocked_pubkeys = []
+        blocked_usernames = []
+        blocked_words = []
+        blocked_message_signatures = []
+        favourite_message_signatures = []
+        friends_usernames = []
 
         
         
@@ -715,7 +721,7 @@ class Api(object):
         # 3. pass the payload bytes into this function
         try:
             req = urllib.request.Request(url, data=json_payload, headers=headers)
-            response = urllib.request.urlopen(req)
+            response = urllib.request.urlopen(req, timeout=5)
             data = response.read()  # read the received bytes
             # load encoding if possible (default to utf-8)
             encoding = response.info().get_content_charset('utf-8')
@@ -727,10 +733,13 @@ class Api(object):
         JSON_object = json.loads(data.decode(encoding))
         print(JSON_object)
 
-    def rx_privatemessage(self,username,apikey,pubkey,privkey,login_record, t_user, t_pubkey,t_message):
+    def rx_privatemessage(self,username,apikey,pubkey,privkey,login_record, t_user, t_pubkey,t_message,t_connection_address,personal_pubkey):
         """ Use this API to transmit a secret message between users. Meta-information is
             public (the sender username/pubkey, and the destination username/pubkey, the timestamp). """
-        url = "http://cs302.kiwi.land/api/rx_privatemessage"
+        url = "http://"+ t_connection_address + "/api/rx_privatemessage"
+        print("XXXXXXXXXXXXXXXXX")
+        print(t_connection_address)
+        print("XXXXXXXXXXXXXXXXX")
 
         # timestamp
         sender_created_at = str(time.time())
@@ -741,15 +750,17 @@ class Api(object):
 
         # Generate encrypting public key
         target_key = nacl.signing.VerifyKey(target_pubkey,encoder=nacl.encoding.HexEncoder).to_curve25519_public_key()
-
+        personal_key = nacl.signing.VerifyKey(personal_pubkey,encoder=nacl.encoding.HexEncoder).to_curve25519_public_key()
         # Make sealed box using public key (can only be decoded by target)
         box = nacl.public.SealedBox(target_key)
+        personal_box = nacl.public.SealedBox(personal_key)
 
         target_key_str = target_key.encode(encoder=nacl.encoding.HexEncoder).decode('utf-8')
 
         # Private message that needs to be encrypted
         message = bytes(t_message,encoding = 'utf-8')
         encrypted_message = box.encrypt(message, encoder=nacl.encoding.HexEncoder).decode('utf-8')
+        personal_encrypted_message = personal_box.encrypt(message, encoder=nacl.encoding.HexEncoder).decode('utf-8')
 
         # Create signing key from private key
         publickey = pubkey
@@ -805,6 +816,7 @@ class Api(object):
 
         JSON_object = json.loads(data.decode(encoding))
         print(JSON_object)
+        return payload,personal_encrypted_message
 
     def decrypt_private_message(self,privatekey,encrypted_message):
         print(privatekey)
@@ -814,8 +826,8 @@ class Api(object):
         return plain_text
 
 
-    def tx_ping_check_EP(self, username, api_key, connection_address, connection_location):
-        url = "http://172.23.73.212:1234/api/ping_check"
+    def tx_ping_check_EP(self, username, api_key, connection_address, connection_location,other_connections):
+        url = "http://" + other_connections  + "/api/ping_check"
 
         # Credentials use server to update
         #username = "misl000"
@@ -825,8 +837,8 @@ class Api(object):
         #pubkey = "c852f14e5c063da1dbedb7fa0d6cc9e4d6f61e581140b4ae2f46cddd67556d48"
 
         # connections
-        connection_address = "172.23.13.81:8080"
-        connection_location = "2"
+        connection_address = connection_address
+        connection_location = connection_location
         my_time = str(time.time())
 
         # create HTTP BASIC authorization header
@@ -861,7 +873,7 @@ class Api(object):
         # 3. pass the payload bytes into this function
         try:
             req = urllib.request.Request(url, data=json_payload, headers=headers)
-            response = urllib.request.urlopen(req)
+            response = urllib.request.urlopen(req, timeout=5)
             data = response.read()  # read the received bytes
             # load encoding if possible (default to utf-8)
             encoding = response.info().get_content_charset('utf-8')

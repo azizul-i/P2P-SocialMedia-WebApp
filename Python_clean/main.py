@@ -24,7 +24,7 @@ import socket
 
 # The address we listen for connections on
 
-LISTEN_IP = "192.168.87.21"
+LISTEN_IP = "172.23.13.81"
 #LISTEN_PORT = 1234
 LISTEN_PORT = 8080
 
