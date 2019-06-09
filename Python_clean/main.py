@@ -24,7 +24,7 @@ LISTEN_IP = socket.gethostbyname(hostname)
 
 # The address we listen for connections on
 
-LISTEN_IP = "172.23.2.31"
+LISTEN_IP = "192.168.87.21"
 #LISTEN_PORT = 1234
 LISTEN_PORT = 10050
 
@@ -63,7 +63,7 @@ def runMainApp():
             # 'tools.sessions.storage_path': '/tmp/mysessions',
         },
 
-        '/server/': {
+        '/d/': {
             'tools.staticdir.root': os.getcwd(),
             'tools.encode.on': True, 
             'tools.encode.encoding': 'utf-8',
@@ -94,6 +94,7 @@ def runMainApp():
     # Create an instance of MainApp and tell Cherrypy to send all requests under / to it. (ie all of them)
     cherrypy.tree.mount(server.MainApp(), "/", conf)
     cherrypy.tree.mount(server.ApiApp(), "/api", conf)
+    cherrypy.tree.mount(server.DisplayApp(), "/d", conf)
     #cherrypy.tree.mount(server.ClientApiApp(), "/server", conf)
 
     # Tell cherrypy where to listen, and to turn autoreload on

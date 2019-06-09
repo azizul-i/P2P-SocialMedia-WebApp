@@ -54,18 +54,18 @@ class MainApp(object):
             Page += "Status: " + cherrypy.session.get('status') + "<br/>"
             
             Page += "<body>What would you like to do today?</body>" + "<br/>"
-            Page += "<a href='/api/status_report' class = 'ApiApp'>Change Status</a>" + "<br/>" + "<br/>"
+            Page += "<a href='/d/status_report' class = 'DisplayApp'>Change Status</a>" + "<br/>" + "<br/>"
 
 
 
-            Page += "<a href='/api/list_users' class = 'ApiApp'>Online Users</a>"
+            Page += "<a href='/d/list_users' class = 'DisplayApp'>Online Users</a>"
             Page += "   Check who is online, and drop a message"  + "<br/>" + "<br/>"
 
             Page += "<a href='/config_privdata'>Configure Private Keys</a>" 
             Page += "   Update your private information"
             Page += "<br/>" + "<br/>"
 
-            Page += "<a href='/api/tweeter' class = 'ApiApp'>TWEETER</a>"
+            Page += "<a href='/d/tweeter' class = 'DisplayApp'>TWEETER</a>"
             Page += "   Check the latest broadcasts from your peers" + "<br/>" + "<br/>"
 
             Page += '<form action="/api/tx_broadcast" method="post" enctype="multipart/form-data">'
@@ -797,7 +797,13 @@ class ApiApp(object):
 
     
 
-    
+class DisplayApp(object):
+
+    _cp_config = {'tools.encode.on': True, 
+                'tools.encode.encoding': 'utf-8',
+                'tools.sessions.on' : 'True',
+    } 
+
 
 
     

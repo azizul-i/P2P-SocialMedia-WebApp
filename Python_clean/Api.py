@@ -108,8 +108,8 @@ class Api(object):
         # connections
         hostname = socket.gethostname()
         ip = socket.gethostbyname(hostname)
-        connection_address = "172.23.2.31:10050"
-        connection_location = "1"
+        connection_address = "192.168.87.21:10050"
+        connection_location = "2"
 
         # create HTTP BASIC authorization header
         #credentials = ('%s:%s' % (username, password))
@@ -283,7 +283,6 @@ class Api(object):
         #print(users)
         for record in range(len(users)):
             #print(users[record])
-            online_records.append(users[record])
             username.append(users[record]["username"])
             connection_address.append(users[record]["connection_address"])
             connection_location.append(users[record]["connection_location"])
@@ -291,8 +290,21 @@ class Api(object):
             publickey.append(users[record]["incoming_pubkey"])
             status.append(users[record]["status"])
 
+        online_users = {
+            "username":username,
+            "connection_address":connection_address,
+            "connection_location":connection_location,
+            "connection_updated_at":updated_time,
+            "publickey": publickey,
+            "status":status
+        }
 
-        return username, connection_address,connection_location,updated_time,publickey,status
+        print("******************************************")
+        print(online_users)
+        print("*******************************************")
+
+     
+        return online_users
         #print(username)
         #print(status)
         #print(online_records)
@@ -1152,6 +1164,17 @@ class Api(object):
 
         JSON_object = json.loads(data.decode(encoding))
         print(JSON_object)
+
+    
+    def tx_ping_check(self,username,api_key):
+        all_connections = data.data.get_all_connections(self)
+        personal_record = data.data.get_user_record(self,username)
+
+        for i in range(len(all_connections["connections"])):
+            try:
+                Api.Api.tx_ping_check_EP(self,username,api_key,personal_record["user_connection_address"],personal_record["user_connection_location"],all_connections["connections"][i])
+            except:
+                print("No such connection exists")
         
 
 
