@@ -24,7 +24,7 @@ LISTEN_IP = socket.gethostbyname(hostname)
 
 # The address we listen for connections on
 
-LISTEN_IP = "192.168.86.78"
+LISTEN_IP = "172.23.2.31"
 #LISTEN_PORT = 1234
 LISTEN_PORT = 10050
 

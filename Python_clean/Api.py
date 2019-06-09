@@ -10,6 +10,7 @@ import nacl.public
 import time
 import data
 import socket
+import nacl.hash
 
 
 class Api(object):
@@ -107,8 +108,8 @@ class Api(object):
         # connections
         hostname = socket.gethostname()
         ip = socket.gethostbyname(hostname)
-        connection_address = "192.168.86.78:10050"
-        connection_location = "2"
+        connection_address = "172.23.2.31:10050"
+        connection_location = "1"
 
         # create HTTP BASIC authorization header
         #credentials = ('%s:%s' % (username, password))
@@ -391,14 +392,16 @@ class Api(object):
      
         return JSON_object
 
-    def add_privatedata(self,username,api_key, login_record,privatekey,password,friend_username=None): 
+    def add_privatedata(self,username,api_key, login_record,privatekey,password,friend_username="none",blocked_words="none"): 
         """ Use this API to save symmetrically encrypted private data for a given user. It will
             automatically delete previously uploaded private data. """
         url = "http://cs302.kiwi.land/api/add_privatedata"
 
         loginserver_record = str(login_record)
         client_saved_at = str(time.time())
-
+        print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+        print("ADDING NEW PRIVATE DATA: " + privatekey)
+        print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 
         #SecretBox generation
         
@@ -428,7 +431,7 @@ class Api(object):
 
         #keys, record = Api.decode_privatedata(self,username,api_key,password)
 
-        if friend_username != None:
+        if friend_username != "none":
             try:
                 print("CHECK")
                 keys, record = Api.decode_privatedata(self,username,api_key,password)
@@ -445,7 +448,7 @@ class Api(object):
                 print("CHECK")
                 friends_usernames = record["friends_usernames"]
                 print("CHECK")
-                prikeys = record["prikeys"]
+                #prikeys = record["prikeys"]
                 print("CHECK")
             except:
                 print("------------------------")
@@ -454,9 +457,10 @@ class Api(object):
         
         
 
-
-
-        friends_usernames.append(friend_username)
+        for i in range(len(friends_usernames)):
+            if friend_username[i] != "none":
+                friends_usernames.append(friend_username)
+        #friends_usernames = []
 
         privatedata = { 
                         "prikeys": prikeys,
@@ -468,9 +472,14 @@ class Api(object):
                         "friends_usernames": friends_usernames
                      }
 
+
+
+        print("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
+        print(privatedata)
+        print("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
         # Converts private data to string
         privatedata = json.dumps(privatedata) 
-
+        
         # Converts to bytes
         privatedata = bytes(privatedata, encoding='utf-8') 
         #privatedata = base64.b64encode(privatedata
@@ -766,7 +775,15 @@ class Api(object):
         JSON_object = json.loads(data.decode(encoding))
         print(JSON_object)
 
-    def rx_privatemessage(self,username,apikey,pubkey,privkey,login_record, t_user, t_pubkey,t_message,t_connection_address,personal_pubkey):
+    def encrypted_message(self,username,pubkey,t_message):
+        target_key = nacl.signing.VerifyKey(pubkey,encoder=nacl.encoding.HexEncoder).to_curve25519_public_key()
+        box = nacl.public.SealedBox(target_key)
+        message = bytes(t_message,encoding = 'utf-8')
+        encrypted_message = box.encrypt(message, encoder=nacl.encoding.HexEncoder).decode('utf-8')
+        return encrypted_message
+
+
+    def rx_privatemessage(self,username,apikey,pubkey,privkey,login_record, t_user, t_pubkey,t_message,t_connection_address):
         """ Use this API to transmit a secret message between users. Meta-information is
             public (the sender username/pubkey, and the destination username/pubkey, the timestamp). """
         url = "http://"+ t_connection_address + "/api/rx_privatemessage"
@@ -783,7 +800,7 @@ class Api(object):
 
         # Generate encrypting public key
         target_key = nacl.signing.VerifyKey(target_pubkey,encoder=nacl.encoding.HexEncoder).to_curve25519_public_key()
-        personal_key = nacl.signing.VerifyKey(personal_pubkey,encoder=nacl.encoding.HexEncoder).to_curve25519_public_key()
+        personal_key = nacl.signing.VerifyKey(pubkey,encoder=nacl.encoding.HexEncoder).to_curve25519_public_key()
         # Make sealed box using public key (can only be decoded by target)
         box = nacl.public.SealedBox(target_key)
         personal_box = nacl.public.SealedBox(personal_key)
@@ -838,7 +855,7 @@ class Api(object):
         # 3. pass the payload bytes into this function
         try:
             req = urllib.request.Request(url, data=json_payload, headers=headers)
-            response = urllib.request.urlopen(req)
+            response = urllib.request.urlopen(req, timeout=2)
             data = response.read()  # read the received bytes
             # load encoding if possible (default to utf-8)
             encoding = response.info().get_content_charset('utf-8')
@@ -857,6 +874,118 @@ class Api(object):
         unseal_box = nacl.public.SealedBox(unseal_key)
         plain_text = unseal_box.decrypt(encrypted_message, encoder=nacl.encoding.HexEncoder).decode('utf-8')
         return plain_text
+
+
+    def tx_groupinvite(self, username, apikey, loginserver_record,target_pubkey,target_username, privatekey, pubkey, connections):
+        """ Use this API to transmit a secret message between users. Meta-information is
+            public (the sender username/pubkey, and the destination username/pubkey, the timestamp). """
+        url = "http://" + connections + "/api/groupinvite"
+        print("XXXXXXXXXXXXXXXXX")
+        print(connections)
+        print("XXXXXXXXXXXXXXXXX")
+
+        ## LOGIN RECORD DONE
+
+        #MAKE GROUPKEY HASH
+
+        #TARGET PUBKEY DONE
+        target_pubkey = target_pubkey
+
+        #TARGET USERNAME DONE
+        target_username = target_username
+        #ENCRYPTED GROUPKEY
+
+        # timestamp
+        sender_created_at = str(time.time())
+
+        # target details
+        key_password = "ikea"
+        salt_password = bytes((key_password * 16).encode('utf-8')[:16])
+        key_password_b = bytes(key_password, encoding='utf-8')
+        print(key_password_b)
+        print(salt_password)
+        ops = nacl.pwhash.argon2i.OPSLIMIT_SENSITIVE
+        mems = nacl.pwhash.argon2i.MEMLIMIT_SENSITIVE
+
+        #symmetric_key = nacl.pwhash.argon2i.kdf(32,key_password_b,salt_password,ops,mems, encoder=nacl.encoding.HexEncoder)
+        symmetric_key = nacl.pwhash.argon2i.kdf(32,key_password_b,salt_password,ops,mems)
+        print(key_password)
+        print(key_password_b)
+        print(salt_password)
+        print(ops)
+        print(mems)
+        print(symmetric_key)
+        #message = Api.get_privatedata(self,username,api_key)
+        groupkey_hash = nacl.hash.sha256(symmetric_key, encoder=nacl.encoding.HexEncoder)
+        print(groupkey_hash)
+
+        # Generate encrypting public key
+        target_key = nacl.signing.VerifyKey(target_pubkey,encoder=nacl.encoding.HexEncoder).to_curve25519_public_key()
+        personal_key = nacl.signing.VerifyKey(pubkey,encoder=nacl.encoding.HexEncoder).to_curve25519_public_key()
+        # Make sealed box using public key (can only be decoded by target)
+        box = nacl.public.SealedBox(target_key)
+        personal_box = nacl.public.SealedBox(personal_key)
+
+        #target_key_str = target_key.encode(encoder=nacl.encoding.HexEncoder).decode('utf-8')
+
+        # Private message that needs to be encrypted
+        key = bytes(symmetric_key,encoding = 'utf-8')
+        encrypted_groupkey = box.encrypt(key, encoder=nacl.encoding.HexEncoder).decode('utf-8')
+        personal_encrypted_message = personal_box.encrypt(key, encoder=nacl.encoding.HexEncoder).decode('utf-8')
+
+        # Create signing key from private key
+        signing_key = nacl.signing.SigningKey(privatekey, encoder=nacl.encoding.HexEncoder)
+        sender_created_at = str(time.time())
+        
+        #publicKey,signaturePing_str,signature_str,signing_key,login = add_pubkey.PublicKey.add_key(self,username,password)
+        
+        # Sign message (login,targetkey,targetusernmae,encryptedmessage,sender_created_at)  
+        signatureMessage = bytes(loginserver_record + groupkey_hash + target_pubkey + target_username + encrypted_groupkey + sender_created_at, encoding = 'utf-8')
+        signedMessage = signing_key.sign(signatureMessage, encoder=nacl.encoding.HexEncoder)
+        signature_str = signedMessage.signature.decode('utf-8')
+        
+
+        # create HTTP BASIC authorization header
+        #credentials = ('%s:%s' % (username, password))
+        #b64_credentials = base64.b64encode(credentials.encode('ascii'))
+        headers = {
+            'X-username': username,
+            'X-apikey': apikey,
+            'Content-Type': 'application/json; charset=utf-8',
+        }
+
+        payload = {
+            "loginserver_record":loginserver_record,
+            "groupkey_hash": groupkey_hash,
+            "target_pubkey":target_pubkey,
+            "target_username":target_username,
+            "encrypted_groupkey": encrypted_groupkey,
+            "sender_created_at" : sender_created_at,
+            "signature": signature_str,
+        
+        }
+
+        # 1. convert the payload into json representation,
+        payload_str = json.dumps(payload)
+        
+        # 2. ensure the payload is in bytes, not a string
+        json_payload = payload_str.encode('utf-8')
+
+        # 3. pass the payload bytes into this function
+        try:
+            req = urllib.request.Request(url, data=json_payload, headers=headers)
+            response = urllib.request.urlopen(req, timeout=2)
+            data = response.read()  # read the received bytes
+            # load encoding if possible (default to utf-8)
+            encoding = response.info().get_content_charset('utf-8')
+            response.close()
+        except urllib.error.HTTPError as error:
+            print(error.read())
+            exit()
+
+        JSON_object = json.loads(data.decode(encoding))
+        print(JSON_object)
+        #return payload
 
 
     def tx_ping_check_EP(self, username, api_key, connection_address, connection_location,other_connections):
@@ -918,5 +1047,112 @@ class Api(object):
         JSON_object = json.loads(data.decode(encoding))
         #print(status)
         print(JSON_object)
+
+    def tx_groupmessage(self,username,apikey,loginserver_record,privatekey,group_message,connections):
+        url = "http://" + connections + "/api/rx_groupmessage"
+        #url = "http://" + connections + "/api/groupinvite"
+        print("XXXXXXXXXXXXXXXXX")
+        print(connections)
+        print("XXXXXXXXXXXXXXXXX")
+
+        ## LOGIN RECORD DONE
+
+        #MAKE GROUPKEY HASH
+
+        #ENCRYPTED GROUPKEY
+
+        # timestamp
+        sender_created_at = str(time.time())
+
+        # target details
+        key_password = "ikea"
+        salt_password = bytes((key_password * 16).encode('utf-8')[:16])
+        key_password_b = bytes(key_password, encoding='utf-8')
+        print(key_password_b)
+        print(salt_password)
+        ops = nacl.pwhash.argon2i.OPSLIMIT_SENSITIVE
+        mems = nacl.pwhash.argon2i.MEMLIMIT_SENSITIVE
+
+        #symmetric_key = nacl.pwhash.argon2i.kdf(32,key_password_b,salt_password,ops,mems, encoder=nacl.encoding.HexEncoder)
+        symmetric_key = nacl.pwhash.argon2i.kdf(32,key_password_b,salt_password,ops,mems)
+        print(key_password)
+        print(key_password_b)
+        print(salt_password)
+        print(ops)
+        print(mems)
+        print(symmetric_key)
+        box = nacl.secret.SecretBox(symmetric_key)
+        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+        #message = Api.get_privatedata(self,username,api_key)
+        groupkey_hash = nacl.hash.sha256(symmetric_key, encoder=nacl.encoding.HexEncoder).decode('utf-8')
+        print(groupkey_hash)
+
+
+
+        # Create signing key from private key
+        signing_key = nacl.signing.SigningKey(privatekey, encoder=nacl.encoding.HexEncoder)
+        sender_created_at = str(time.time())
+        
+        #publicKey,signaturePing_str,signature_str,signing_key,login = add_pubkey.PublicKey.add_key(self,username,password)
+        
+        # Sign message (login,targetkey,targetusernmae,encryptedmessage,sender_created_at)  
+        group_msg = bytes(group_message, encoding='utf-8') 
+        #privatedata = base64.b64encode(privatedata
+
+        # Encrypt the private data
+        encrypted_groupmessage = box.encrypt(group_msg,nonce, encoder=nacl.encoding.Base64Encoder).decode('utf-8')
+        
+        
+        # Make signing key
+        signing_key = nacl.signing.SigningKey(privatekey, encoder=nacl.encoding.HexEncoder)
+        
+        # Signing message
+        signatureMessage = bytes(loginserver_record + encrypted_groupmessage + sender_created_at, encoding = 'utf-8')
+        signedMessage = signing_key.sign(signatureMessage, encoder=nacl.encoding.HexEncoder)
+        signature_str = signedMessage.signature.decode('utf-8')
+        
+
+        # create HTTP BASIC authorization header
+        #credentials = ('%s:%s' % (username, password))
+        #b64_credentials = base64.b64encode(credentials.encode('ascii'))
+        headers = {
+            'X-username': username,
+            'X-apikey': apikey,
+            'Content-Type': 'application/json; charset=utf-8',
+        }
+
+        payload = {
+            "loginserver_record":loginserver_record,
+            "groupkey_hash": groupkey_hash,
+            "group_message":encrypted_groupmessage,
+            "sender_created_at":sender_created_at,
+            "signature": signature_str,
+        
+        }
+        print("HHHHHHHHHHHHHHHHHHHHHHHHHHH")
+        print(payload)
+        print("HHHHHHHHHHHHHHHHHHHHHHHHHHH")
+        # 1. convert the payload into json representation,
+        payload_str = json.dumps(payload)
+        
+        # 2. ensure the payload is in bytes, not a string
+        json_payload = payload_str.encode('utf-8')
+
+        # 3. pass the payload bytes into this function
+        try:
+            req = urllib.request.Request(url, data=json_payload, headers=headers)
+            response = urllib.request.urlopen(req)
+            data = response.read()  # read the received bytes
+            # load encoding if possible (default to utf-8)
+            encoding = response.info().get_content_charset('utf-8')
+            response.close()
+        except urllib.error.HTTPError as error:
+            print(error.read())
+            exit()
+
+        JSON_object = json.loads(data.decode(encoding))
+        print(JSON_object)
+        
+
 
        

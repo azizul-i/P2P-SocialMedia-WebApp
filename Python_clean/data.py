@@ -1,8 +1,10 @@
 import sqlite3
+import Api
+#from bs4 import BeautifulSoup
 
 class data(object):
     def create_broadcast_table(self):
-        conn = sqlite3.connect("secure_database.db")
+        conn = sqlite3.connect("server_database.db")
         c = conn.cursor()
         c.execute("CREATE TABLE rx_broadcast (username TEXT NOT NULL, publickey TEXT NOT NULL, message TEXT NOT NULL, sender_created_at REAL NOT NULL)")
         conn.commit()
@@ -15,12 +17,15 @@ class data(object):
         conn.close()
 
     def update_broadcast(self,username,publickey,message,sender_created_at):
-        conn = sqlite3.connect("secure_database.db")
+        conn = sqlite3.connect("server_database.db")
 
         #get the cursor (this is what is used to interact)
 
         c = conn.cursor()
         #try:
+        #soup = BeautifulSoup(message)
+        #clean_message = soup.get_text()
+
         c.execute("insert into rx_broadcast (username, publickey ,message, sender_created_at) values (?,?,?,?)", (username,publickey,message,sender_created_at))
         #except:
         #    print("Invalid data types/Parameters!")
@@ -35,7 +40,7 @@ class data(object):
         conn.close()
     
     def delete_broadcast(self):
-        conn = sqlite3.connect("secure_database.db")
+        conn = sqlite3.connect("server_database.db")
 
         #get the cursor (this is what is used to interact)
 
@@ -293,6 +298,9 @@ class data(object):
         #for i in range(len(total_users)):
          #   if total_users
 
+        # ATTRIBUTE
+        #soup = BeautifulSoup(message)
+        #clean_message = soup.get_text()
 
         #try:
         c.execute("insert into private_messages (username, target_user,target_publickey, sender_created_at, messages,signature_pm) values (?,?,?,?,?,?)", (sender,t_user,t_pubkey,timestamp,message,signature_pm))
@@ -403,7 +411,7 @@ class data(object):
         return user_record
 
     def get_broadcasts(self,username=None, filter_type=None):
-        conn = sqlite3.connect("secure_database.db")
+        conn = sqlite3.connect("server_database.db")
         c = conn.cursor()
         users = []
         pubkey = []
@@ -445,6 +453,39 @@ class data(object):
         conn.close()
 
         return broadcasts
+
+    def encrypt_database(self,username,prev_private_key,publickey):
+        conn = sqlite3.connect("server_database.db")
+        #get the cursor (this is what is used to interact)
+        c = conn.cursor()
+        decoded_message = "NONE"
+
+        c.execute("SELECT target_user,messages,sender_created_at from private_messages")
+        rows = c.fetchall()
+
+        for row in rows:
+            if row[0] == username:
+                c.execute("UPDATE private_messages SET target_publickey = ? WHERE target_user = ?", (publickey,row[0]))
+                try:
+                    print("PREVIOUS PRIVATE KEY: " + prev_private_key)
+                    decoded_message = Api.Api.decrypt_private_message(self,prev_private_key,row[1])
+                    print("MESSAGE HAS BEEN DECODED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                    print("DECODED MESSAGE: " + decoded_message)
+                    encrypt_message = Api.Api.encrypted_message(self,username,publickey,decoded_message)
+                    print("MESSAGE HAS BEEN ENCODED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                    c.execute("UPDATE private_messages SET messages = ? WHERE sender_created_at = ?", (encrypt_message,row[2]))
+                except:
+                    print(decoded_message)
+                #c.execute("UPDATE private_messages SET target_publickey = ? WHERE target_user = ?", (publickey,row[0]))
+                #conn.commit()
+
+                
+
+
+        conn.commit()
+        conn.close()
+
+
 
 
 
