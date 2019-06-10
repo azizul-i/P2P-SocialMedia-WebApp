@@ -108,8 +108,8 @@ class Api(object):
         # connections
         hostname = socket.gethostname()
         ip = socket.gethostbyname(hostname)
-        connection_address = "172.23.24.230:10050"
-        connection_location = "2"
+        connection_address = ip + ":10020"
+        connection_location = "0"
 
         # create HTTP BASIC authorization header
         #credentials = ('%s:%s' % (username, password))

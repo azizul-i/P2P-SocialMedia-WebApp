@@ -194,7 +194,7 @@ class MainApp(object):
     @cherrypy.expose
     def signout(self):
         """Logs the current user out, expires their session"""
-
+        raise cherrypy.HTTPRedirect('/d/report?=' + "offline")
         username = cherrypy.session.get('username')
         if username is None:
             pass
@@ -572,7 +572,12 @@ class DisplayApp(object):
                 raise cherrypy.HTTPRedirect('/d/status_report')
             cherrypy.session['status'] = status
             if status == "offline":
-                raise cherrypy.HTTPRedirect('/signout' )
+                username = cherrypy.session.get('username')
+                if username is None:
+                    pass
+                else:
+                    cherrypy.lib.sessions.expire()
+                raise cherrypy.HTTPRedirect('/')
             
             Page += "<br/>"
             Page += "<body>You have successfully reported to the sever!</body>" + "<br/>" + "<br/>"
@@ -679,12 +684,15 @@ class DisplayApp(object):
                 #print(row[0])
                 Page += "User: " + str(broadcasts["users"][i]) + "<br/>"
                 #print(row[1])
-                Page += "Public Key: " + str(broadcasts["pubkey"][i]) + "<br/>"
+                #Page += "Public Key: " + str(broadcasts["pubkey"][i]) + "<br/>"
                 #print(row[2])
                 Page += "Tweet: " + str(broadcasts["message"][i]) + "<br/>"
                 #print(row[3])
-                time = int(broadcasts["timestamp"][i])
-                time_str = datetime.datetime.utcfromtimestamp(time).strftime('%Y-%m-%d %H:%M:%S')
+                try:
+                    time = int(broadcasts["timestamp"][i])
+                    time_str = datetime.datetime.utcfromtimestamp(time).strftime('%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    time_str = broadcasts["timestamp"][i]
                 Page += "Sent at: " + str(time_str) + "<br/>"
                 Page += "<br/>"
                 Page += "<br/>"
@@ -750,8 +758,9 @@ class DisplayApp(object):
                         decrypted_msg = Api.Api.decrypt_private_message(self,cherrypy.session.get('prev_private_key'),messages[i])
                     except:
                         decrypted_msg = Api.Api.decrypt_private_message(self,cherrypy.session.get('private_key'),messages[i])
+                    #decrypted_msg = data.strip_injection(decrypted_msg)
                     Page += "Sender: " + sender[i] + "<br/>"
-                    Page += "Message: " + decrypted_msg + "<br/>"
+                    Page += "Message: " + str(decrypted_msg) + "<br/>"
                     time_str = datetime.datetime.utcfromtimestamp(timestamp[i]).strftime('%Y-%m-%d %H:%M:%S')
                     Page += "Sent at: " + time_str + "<br/>"
                     Page += "<br/>"

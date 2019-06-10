@@ -1,6 +1,25 @@
 import sqlite3 
-import Api 
-# Used Concepts from https://stackoverflow.com/questions/753052/strip-html-from-strings-in-python
+import Api
+from html.parser import HTMLParser
+
+
+
+
+# Attribute  Code from https://stackoverflow.com/questions/753052/strip-html-from-strings-in-python
+class MLStripper(HTMLParser):
+    def __init__(self):
+        self.reset()
+        self.strict = False
+        self.convert_charrefs= True
+        self.fed = []
+    def handle_data(self, d):
+        self.fed.append(d)
+    def get_data(self):
+        return ''.join(self.fed)
+
+def strip_injection(html):
+    stripedMessage = MLStripper().feed(html)
+    return stripedMessage.get_data()
 
 
 
@@ -46,7 +65,7 @@ class data(object):
         #try:
         #soup = BeautifulSoup(message)
         #clean_message = soup.get_text()
-
+        message = strip_injection(message)
         c.execute("insert into rx_broadcast (username, publickey ,message, sender_created_at,signature_b) values (?,?,?,?,?)", (username,publickey,message,sender_created_at,signature_b))
         #except:
         #    print("Invalid data types/Parameters!")
