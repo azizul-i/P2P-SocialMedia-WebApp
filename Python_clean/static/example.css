@@ -15,6 +15,11 @@ head {
 
 }
 
+.loader {
+  border-top: 16px solid blue;
+  border-bottom: 16px solid blue;
+}
+
 h1,
 h2,
 h3 {

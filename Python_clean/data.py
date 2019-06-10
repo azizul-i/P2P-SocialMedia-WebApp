@@ -1,9 +1,30 @@
-import sqlite3
-import Api
-#from bs4 import BeautifulSoup
+import sqlite3 
+import Api 
+# Used Concepts from https://stackoverflow.com/questions/753052/strip-html-from-strings-in-python
+
+
 
 class data(object):
     def create_broadcast_table(self):
+
+
+        
+        conn = sqlite3.connect("server_database.db")
+        c = conn.cursor()
+        try:
+            c.execute("ALTER TABLE rx_broadcast ADD signature_b text")
+            conn.commit()
+            response = {
+                "response: Table Modified"
+            }
+        except:
+            response = {
+                "response: Table already modified"
+            }
+        conn.commit()
+        conn.close()
+
+
         conn = sqlite3.connect("server_database.db")
         c = conn.cursor()
         c.execute("CREATE TABLE rx_broadcast (username TEXT NOT NULL, publickey TEXT NOT NULL, message TEXT NOT NULL, sender_created_at REAL NOT NULL)")
@@ -16,7 +37,7 @@ class data(object):
         print(str(response))
         conn.close()
 
-    def update_broadcast(self,username,publickey,message,sender_created_at):
+    def update_broadcast(self,username,publickey,message,sender_created_at,signature_b):
         conn = sqlite3.connect("server_database.db")
 
         #get the cursor (this is what is used to interact)
@@ -26,7 +47,7 @@ class data(object):
         #soup = BeautifulSoup(message)
         #clean_message = soup.get_text()
 
-        c.execute("insert into rx_broadcast (username, publickey ,message, sender_created_at) values (?,?,?,?)", (username,publickey,message,sender_created_at))
+        c.execute("insert into rx_broadcast (username, publickey ,message, sender_created_at,signature_b) values (?,?,?,?,?)", (username,publickey,message,sender_created_at,signature_b))
         #except:
         #    print("Invalid data types/Parameters!")
 
@@ -78,6 +99,8 @@ class data(object):
                 "response: Table already modified"
             }
         conn.close
+
+        
 
 
         print(str(response))
@@ -476,14 +499,51 @@ class data(object):
                     c.execute("UPDATE private_messages SET messages = ? WHERE sender_created_at = ?", (encrypt_message,row[2]))
                 except:
                     print(decoded_message)
-                #c.execute("UPDATE private_messages SET target_publickey = ? WHERE target_user = ?", (publickey,row[0]))
-                #conn.commit()
-
-                
-
 
         conn.commit()
         conn.close()
+
+    def friend_broadcasts(self,username=None):
+        conn = sqlite3.connect("server_database.db")
+        c = conn.cursor()
+        users = []
+        pubkey = []
+        message = []
+        timestamp = []
+        signature = []
+        c.execute("SELECT username,publickey,message, sender_created_at,signature_b from rx_broadcast ORDER by sender_created_at DESC")
+        rows = c.fetchall()
+        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+        print(username)
+        print('@@@@@@@@@@@@@@@@@@@@@@@@@@')
+        for row in rows:
+                if row[0] == username:
+                    users.append(row[0])
+                    pubkey.append(row[1])
+                    message.append(row[2])
+                    timestamp.append(row[3])
+                    signature.append(row[4])
+
+        
+        broadcasts = {
+            "users": users,
+            "pubkey": pubkey,
+            "message": message,
+            "timestamp":timestamp,
+            "signature":signature
+        }
+
+        print(broadcasts)
+
+        print("UPDATED BROADCASTS")
+        conn.commit()
+        conn.close()
+
+        return broadcasts
+
+
+
+
 
 
 

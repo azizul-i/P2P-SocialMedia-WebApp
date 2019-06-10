@@ -108,7 +108,7 @@ class Api(object):
         # connections
         hostname = socket.gethostname()
         ip = socket.gethostbyname(hostname)
-        connection_address = "192.168.87.21:10050"
+        connection_address = "172.23.24.230:10050"
         connection_location = "2"
 
         # create HTTP BASIC authorization header
@@ -404,7 +404,7 @@ class Api(object):
      
         return JSON_object
 
-    def add_privatedata(self,username,api_key, login_record,privatekey,password,friend_username="none",blocked_words="none"): 
+    def add_privatedata(self,username,api_key, login_record,privatekey,password,friend_username="none",blocked_words=None,block_username="none",block_message=None,favourite_message=None): 
         """ Use this API to save symmetrically encrypted private data for a given user. It will
             automatically delete previously uploaded private data. """
         url = "http://cs302.kiwi.land/api/add_privatedata"
@@ -436,59 +436,91 @@ class Api(object):
         prikeys = [str(privatekey)]
         blocked_pubkeys = []
         blocked_usernames = []
-        blocked_words = []
+        blocked_text = []
         blocked_message_signatures = []
         favourite_message_signatures = []
         friends_usernames = []
 
         #keys, record = Api.decode_privatedata(self,username,api_key,password)
 
+        print("CHECK1111111111111111111111111111111")
+        keys, record = Api.decode_privatedata(self,username,api_key,password)
+        print("CHECK2222222222222222222222222222222")
+        blocked_pubkeys = record["blocked_pubkeys"]
+        print("CHECK333333333333333333333333333333333")
+        blocked_usernames = record["blocked_usernames"]
+        print("CHECK4444444444444444444444444444444")
+        blocked_text = record["blocked_words"]
+        print("CHECK5555555555555555555555555555555")
+        blocked_message_signatures = record["blocked_message_signatures"]
+        print("CHECK6666666666666666666666666666666")
+        favourite_message_signatures = record["favourite_message_signatures"]
+        print("CHECK777777777777777777777777777777")
+        friends_usernames = record["friends_usernames"]
+        print("CHECK888888888888888888888888888888888")
+        
+        
+#        try:
+#            for i in range(len(friends_usernames)):
+#                if friend_username != "none":
+#                    friends_usernames.append(friend_username)
+#        except:
+#            print("USernAME DID NOT ADD")
+
+
         if friend_username != "none":
             try:
-                print("CHECK")
-                keys, record = Api.decode_privatedata(self,username,api_key,password)
-                print("CHECK")
-                blocked_pubkeys = record["blocked_pubkeys"]
-                print("CHECK")
-                blocked_usernames = record["blocked_usernames"]
-                print("CHECK")
-                blocked_words = record["blocked_words"]
-                print("CHECK")
-                blocked_message_signatures = record["blocked_message_signatures"]
-                print("CHECK")
-                favourite_message_signatures = record["favourite_message_signatures"]
-                print("CHECK")
-                friends_usernames = record["friends_usernames"]
-                print("CHECK")
-                #prikeys = record["prikeys"]
-                print("CHECK")
-            except:
-                print("------------------------")
-                print("Could not obtain record")
-                print("------------------------")
-        
-        
+                friends_usernames.remove(friend_username)
+            except ValueError:
+                print("not yet added")
+            friends_usernames.append(friend_username)
 
-        for i in range(len(friends_usernames)):
-            if friend_username[i] != "none":
-                friends_usernames.append(friend_username)
+        if block_username != "none":
+            try:
+                blocked_usernames.remove(block_username)
+            except ValueError:
+                print("not yet added")
+            blocked_usernames.append(block_username)
+
+        if block_message != None:
+            try:
+                blocked_message_signatures.remove(block_message)
+            except ValueError:
+                print("Not yet added")
+            blocked_message_signatures.append(block_message)
+
+        if favourite_message != None:
+            try:
+                favourite_message_signatures.remove(favourite_message)
+            except ValueError:
+                print("not yet added")
+            favourite_message_signatures.append(favourite_message)
+
+        if blocked_words != None:
+            try:
+                blocked_text.remove(blocked_words)
+            except ValueError:
+                print("not yet added")
+            blocked_text.append(blocked_words)
+#        try:
+ #           for i in range(len(blocked_words)):
+  #              if blocked_words[i] != None:
+   #                 blocked_text.append(blocked_words)
+    #    except:
+     #       print("IT DID NOT BLOCK")
         #friends_usernames = []
 
         privatedata = { 
                         "prikeys": prikeys,
                         "blocked_pubkeys": blocked_pubkeys,
                         "blocked_usernames": blocked_usernames,
-                        "blocked_words": blocked_words,
+                        "blocked_words": blocked_text,
                         "blocked_message_signatures": blocked_message_signatures,
                         "favourite_message_signatures": favourite_message_signatures,
                         "friends_usernames": friends_usernames
                      }
 
 
-
-        print("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
-        print(privatedata)
-        print("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
         # Converts private data to string
         privatedata = json.dumps(privatedata) 
         
