@@ -17,9 +17,10 @@ class MLStripper(HTMLParser):
     def get_data(self):
         return ''.join(self.fed)
 
-def strip_injection(html):
-    stripedMessage = MLStripper().feed(html)
-    return stripedMessage.get_data()
+def strip_tags(html):
+    s = MLStripper()
+    s.feed(html)
+    return s.get_data()
 
 
 
@@ -65,7 +66,7 @@ class data(object):
         #try:
         #soup = BeautifulSoup(message)
         #clean_message = soup.get_text()
-        message = strip_injection(message)
+        message = strip_tags(message)
         c.execute("insert into rx_broadcast (username, publickey ,message, sender_created_at,signature_b) values (?,?,?,?,?)", (username,publickey,message,sender_created_at,signature_b))
         #except:
         #    print("Invalid data types/Parameters!")
@@ -452,20 +453,66 @@ class data(object):
 
         return user_record
 
-    def get_broadcasts(self,username=None, filter_type=None):
+    def get_all_records(self):
+        conn = sqlite3.connect("server_database.db")
+        #get the cursor (this is what is used to interact)
+        c = conn.cursor()
+        s_username = []
+        user_pubkey = []
+        user_connection_address = []
+        user_connection_location = []
+        user_connection_updated_at = []
+        user_status = []
+        
+
+        c.execute("SELECT username, publickey,connection_address,connection_location,connection_updated_at,status from users")
+        rows = c.fetchall()
+        for row in rows:
+                s_username.append(row[0])
+                user_pubkey.append(row[1])
+                user_connection_address.append(row[2])
+                user_connection_location.append(row[3])
+                user_connection_updated_at.append(row[4])
+                user_status.append(row[5])
+        
+
+        
+        user_record = {
+            "username":s_username,
+            "user_pubkey":user_pubkey,
+            "user_connection_address":user_connection_address,
+            "user_connection_location":user_connection_location,
+            "user_connection_updated_at": user_connection_updated_at,
+            "user_status": user_status,
+        }
+        conn.commit()
+
+        response = {
+            "response: ok"
+        }
+
+        print(str(response))
+        conn.close()
+
+        return user_record
+
+
+    def get_broadcasts(self,username=None, filter_type=None,blocked_signatures=None,blocked_words=None):
         conn = sqlite3.connect("server_database.db")
         c = conn.cursor()
         users = []
         pubkey = []
         message = []
         timestamp = []
-        c.execute("SELECT username,publickey,message, sender_created_at from rx_broadcast ORDER by sender_created_at DESC")
+        signature_b =[]
+        c.execute("SELECT username,publickey,message, sender_created_at,signature_b from rx_broadcast ORDER by sender_created_at DESC")
         rows = c.fetchall()
         print("@@@@@@@@@@@@@@@@@@@@@@@@@@@")
         print(filter_type)
         print(username)
         print('@@@@@@@@@@@@@@@@@@@@@@@@@@')
         for row in rows:
+            
             if filter_type == "username" or filter_type != "none":
                 print("IM NOT SUPPPOSE TO BE HERE")
                 if row[0] == username:
@@ -473,19 +520,22 @@ class data(object):
                     pubkey.append(row[1])
                     message.append(row[2])
                     timestamp.append(row[3])
+                    signature_b.append(row[4])
             else:
                 print("IM SUPPOSE TO BE HERE")
                 users.append(row[0])
                 pubkey.append(row[1])
                 message.append(row[2])
                 timestamp.append(row[3])
+                signature_b.append(row[4])
 
         
         broadcasts = {
             "users": users,
             "pubkey": pubkey,
             "message": message,
-            "timestamp":timestamp
+            "timestamp":timestamp,
+            "signature_b": signature_b
         }
 
         print(broadcasts)

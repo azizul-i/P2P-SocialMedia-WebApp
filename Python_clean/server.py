@@ -61,6 +61,8 @@ class MainApp(object):
             Page += "<a href='/d/list_users' class = 'DisplayApp'>Online Users</a>"
             Page += "   Check who is online, and drop a message"  + "<br/>" + "<br/>"
 
+            Page += "<a href='/d/list_all_users' class = 'DisplayApp'>Find people to friend or block!</a>" + "</br>" + "</br>"
+
             Page += "<a href='/config_privdata'>Configure Private Keys</a>" 
             Page += "   Update your private information"
             Page += "<br/>" + "<br/>"
@@ -102,7 +104,7 @@ class MainApp(object):
         
     @cherrypy.expose
     def login(self, bad_attempt = 0):
-        Page = startHTML + "<h1><center>| Your Secure Social Network |</center></h1><br/>" 
+        Page = startHTML + "<h1><center>| Your Secure Social Network | 😄 </center></h1><br/>" 
         if bad_attempt != 0:
             Page += "<font color='red'>Invalid username/password!</font>"
             
@@ -135,6 +137,8 @@ class MainApp(object):
         except:
             print('txt')
         return Page
+    
+
 
     @cherrypy.expose
     def get_privatedata(self,box_password=None):
@@ -163,6 +167,7 @@ class MainApp(object):
             
             redirect = True
             data.data.encrypt_database(self,cherrypy.session.get('username'),cherrypy.session.get('prev_private_key'),cherrypy.session.get('public_key'))
+            cherrypy.session["blocked_message_signatures"] = record["blocked_message_signatures"]
             raise cherrypy.HTTPRedirect("/index")
             #print("FINAL CHECK")
         except:
@@ -513,7 +518,29 @@ class DisplayApp(object):
     _cp_config = {'tools.encode.on': True, 
                 'tools.encode.encoding': 'utf-8',
                 'tools.sessions.on' : 'True',
-    } 
+    }
+
+    @cherrypy.expose
+    def list_all_users(self):
+        Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
+        try:
+            Api.Api.ping_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('public_key'),cherrypy.session.get('private_key'))
+        except:
+            raise cherrypy.HTTPRedirect("/signout")
+        all_users = data.data.get_all_records(self)
+        cherrypy.session["all_users"] = all_users
+        for i in range(len(all_users["username"])):
+            Page += all_users["username"][i] + "</br>" + "</br>"
+            #Page += "<a href= all_filter?block_user=" + all_users["username"][i] + "&url=" + "list_all_users" + ">" + "Block User!" + "</a href>"
+            Page += "     <a href= all_filter?friend=" + all_users["username"][i] + "&url=" + "list_all_users" + ">" + "Friend User!" + "</a href>"
+
+
+
+
+
+        return Page
+
+
 
     @cherrypy.expose
     def tx_privatemessage(self, t_message=None):
@@ -546,8 +573,6 @@ class DisplayApp(object):
 
     @cherrypy.expose
     def filter(self,username=None, filter_type=None):
-        #Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
-        #Page += username + " " + str(filter_type)
     
         raise cherrypy.HTTPRedirect('/d/tweeter?username=' + username + '&filter_type=' + filter_type)
 
@@ -679,26 +704,39 @@ class DisplayApp(object):
             Page += 'Filter Words/Phrases'
             Page += '            <input type="text" name="bad_word"/>' + "<br/>"
             Page += '            <input type="submit" value=" Block Content "/></form>' + "<br/>"   
- 
+            unwanted = False
             for i in range(len(broadcasts["users"])):
+                print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+                print(cherrypy.session.get('blocked_message_signatures'))
+                print(broadcasts["signature_b"][i])
+                print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+                for j in range(len((cherrypy.session.get('blocked_message_signatures')))):
+                    if (cherrypy.session.get('blocked_message_signatures')[j] == broadcasts["signature_b"][i]):
+                        unwanted = True
                 #print(row[0])
-                Page += "User: " + str(broadcasts["users"][i]) + "<br/>"
-                #print(row[1])
-                #Page += "Public Key: " + str(broadcasts["pubkey"][i]) + "<br/>"
-                #print(row[2])
-                Page += "Tweet: " + str(broadcasts["message"][i]) + "<br/>"
-                #print(row[3])
-                try:
-                    time = int(broadcasts["timestamp"][i])
-                    time_str = datetime.datetime.utcfromtimestamp(time).strftime('%Y-%m-%d %H:%M:%S')
-                except ValueError:
-                    time_str = broadcasts["timestamp"][i]
-                Page += "Sent at: " + str(time_str) + "<br/>"
-                Page += "<br/>"
-                Page += "<br/>"
+                if unwanted == False:
+                    Page += "User: " + str(broadcasts["users"][i]) + "<br/>"
+                    #print(row[1])
+                    #Page += "Public Key: " + str(broadcasts["pubkey"][i]) + "<br/>"
+                    #print(row[2])
+                    Page += "Tweet: " + str(broadcasts["message"][i]) + "<br/>"
+                    #print(row[3])
+                    try:
+                        time = int(broadcasts["timestamp"][i])
+                        time_str = datetime.datetime.utcfromtimestamp(time).strftime('%Y-%m-%d %H:%M:%S')
+                    except ValueError:
+                        time_str = broadcasts["timestamp"][i]
+                    Page += "Sent at: " + str(time_str) + "<br/>"
+                    try:
+                        Page += "<a href= all_filter?block_msg=" + broadcasts["signature_b"][i] +"&url=" + "tweeter" + ">" + "Block Broadcast!" + "</a href>"
+                    except:
+                        print("DOES NOT BLOCK")
+                    Page += "<br/>"
+                    Page += "<br/>"
             #conn.commit()
             #conn.close()
             Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
+
         except KeyError: #There is no username
             
             Page += "<center> <body> you have failed to broadcast </body> </center>"
@@ -706,12 +744,14 @@ class DisplayApp(object):
 
 
     @cherrypy.expose
-    def all_filter(self,friend="none", bad_word=None, block_user="none",block_msg=None,fav_msg=None):
-        Api.Api.add_privatedata(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('login_record'),cherrypy.session.get('private_key'),cherrypy.session.get('box_password'),"none",bad_word)
+    def all_filter(self,friend="none", bad_word=None, block_user="none",block_msg=None,fav_msg=None,url=None):
+        Api.Api.add_privatedata(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('login_record'),cherrypy.session.get('private_key'),cherrypy.session.get('box_password'),friend,bad_word,block_user,block_msg,fav_msg)
+        cherrypy.session["blocked_message_signatures"].append(block_msg)
         key,records = Api.Api.decode_privatedata(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'), cherrypy.session.get('box_password'))
         print("##########################################")
         print(records)
         print("##########################################")
+        raise cherrypy.HTTPRedirect('/d/' + url)
 
 
     @cherrypy.expose
@@ -758,9 +798,13 @@ class DisplayApp(object):
                         decrypted_msg = Api.Api.decrypt_private_message(self,cherrypy.session.get('prev_private_key'),messages[i])
                     except:
                         decrypted_msg = Api.Api.decrypt_private_message(self,cherrypy.session.get('private_key'),messages[i])
-                    #decrypted_msg = data.strip_injection(decrypted_msg)
+                    print("CHECEEEEEEEEECK STRIPED MESSAGE")
+                    print("++++++++++++++++++++++++++++++++++++")
+                    print(decrypted_msg)
+                    print("++++++++++++++++++++++++++")
+                    decrypted_msg = data.strip_tags(decrypted_msg)
                     Page += "Sender: " + sender[i] + "<br/>"
-                    Page += "Message: " + str(decrypted_msg) + "<br/>"
+                    Page += "Message: " + decrypted_msg + "<br/>"
                     time_str = datetime.datetime.utcfromtimestamp(timestamp[i]).strftime('%Y-%m-%d %H:%M:%S')
                     Page += "Sent at: " + time_str + "<br/>"
                     Page += "<br/>"
