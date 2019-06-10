@@ -404,7 +404,7 @@ class Api(object):
      
         return JSON_object
 
-    def add_privatedata(self,username,api_key, login_record,privatekey,password,friend_username="none",blocked_words=None,block_username="none",block_message=None,favourite_message=None): 
+    def add_privatedata(self,username,api_key, login_record,privatekey,password,friend_username="none",blocked_words=None,block_username="none",block_message=None,favourite_message=None,reset=None): 
         """ Use this API to save symmetrically encrypted private data for a given user. It will
             automatically delete previously uploaded private data. """
         url = "http://cs302.kiwi.land/api/add_privatedata"
@@ -460,12 +460,16 @@ class Api(object):
         print("CHECK888888888888888888888888888888888")
         
         
-#        try:
-#            for i in range(len(friends_usernames)):
-#                if friend_username != "none":
-#                    friends_usernames.append(friend_username)
-#        except:
-#            print("USernAME DID NOT ADD")
+        if (block_username != "none"):
+            for i in range(len(friends_usernames)):
+                if friends_usernames[i] == block_username:
+                    friends_usernames.remove(block_username)
+
+
+        if friend_username != "none":
+            for i in range(len(blocked_usernames)):
+                if blocked_usernames[i] == friend_username:
+                    blocked_usernames.remove(friend_username)
 
 
         if friend_username != "none":
@@ -509,6 +513,14 @@ class Api(object):
     #    except:
      #       print("IT DID NOT BLOCK")
         #friends_usernames = []
+        if (reset == 1):
+            prikeys = [str(privatekey)]
+            blocked_pubkeys = []
+            blocked_usernames = []
+            blocked_text = []
+            blocked_message_signatures = []
+            favourite_message_signatures = []
+            friends_usernames = []
 
         privatedata = { 
                         "prikeys": prikeys,
@@ -1207,6 +1219,8 @@ class Api(object):
                 Api.Api.tx_ping_check_EP(self,username,api_key,personal_record["user_connection_address"],personal_record["user_connection_location"],all_connections["connections"][i])
             except:
                 print("No such connection exists")
+
+
         
 
 

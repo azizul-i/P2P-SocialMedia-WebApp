@@ -50,7 +50,7 @@ def runMainApp():
             'tools.staticdir.dir': 'static',
         },
 
-        '/api/': {
+        '/api': {
             'tools.staticdir.root': os.getcwd(),
             'tools.encode.on': True, 
             'tools.encode.encoding': 'utf-8',
@@ -63,7 +63,7 @@ def runMainApp():
             # 'tools.sessions.storage_path': '/tmp/mysessions',
         },
 
-        '/d/': {
+        '/d': {
             'tools.staticdir.root': os.getcwd(),
             'tools.encode.on': True, 
             'tools.encode.encoding': 'utf-8',

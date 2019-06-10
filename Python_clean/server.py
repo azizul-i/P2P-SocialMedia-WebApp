@@ -21,7 +21,7 @@ import data
 #import add_pubkey
 
 
-startHTML = "<html><head><title>CS302 example</title><link rel='stylesheet' href='/static/example.css'/><meta http-equiv='refresh' content='60'> </head><body>"
+startHTML = "<html><head><title>Your Secure Network</title><link rel='stylesheet' href='/static/example.css'/><meta http-equiv='refresh' content='60'> </head><body>"
 
 class MainApp(object):
     
@@ -52,18 +52,16 @@ class MainApp(object):
         try:
             Page += "Hello " + cherrypy.session['username'] + "!<br/>"
             Page += "Status: " + cherrypy.session.get('status') + "<br/>"
-            
+
             Page += "<body>What would you like to do today?</body>" + "<br/>"
             Page += "<a href='/d/status_report' class = 'DisplayApp'>Change Status</a>" + "<br/>" + "<br/>"
 
 
 
             Page += "<a href='/d/list_users' class = 'DisplayApp'>Online Users</a>"
-            Page += "   Check who is online, and drop a message"  + "<br/>" + "<br/>"
+            Page += "   Check who is online, and send a message"  + "<br/>" + "<br/>"
 
-            Page += "<a href='/d/list_all_users' class = 'DisplayApp'>Find people to friend or block!</a>" + "</br>" + "</br>"
-
-            Page += "<a href='/config_privdata'>Configure Private Keys</a>" 
+            Page += "<a href='/config_privdata'>Configure Unique Password</a>" 
             Page += "   Update your private information"
             Page += "<br/>" + "<br/>"
 
@@ -75,11 +73,10 @@ class MainApp(object):
             Page += ' <input type="submit" value=" TWEET! "/></form>' + "<br/>" 
 
             Page += "<a href='/d/friends' class = 'DisplayApp'>Family and Friend Updates</a>" + "</br>" + "</br>"
-
-            Page += "<a href='/d/favourites' class = 'DisplayApp'>Favourite Tweets</a>" + "</br>"+ "</br>"
             
-            # REMEMBER TO UNCOMMENT THIS LINE WHEN SERVER IS ONLINE
-            #ClientApiApp.rx_broadcast(self)
+            Page += "<a href ='/d/reset' class = 'DisplayApp'>Reset Preferences</a>" + "</br>" + "</br>"
+            
+
             DisplayApp.list_users(self)
             Api.Api.ping_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('public_key'),cherrypy.session.get('private_key'))
             Api.Api.report_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('status'),cherrypy.session.get('public_key'))
@@ -88,12 +85,6 @@ class MainApp(object):
             #ApiApp.tx_ping_check(self)  ################################### CHECK TO MAKE THIS FASTER
             print(cherrypy.session.get('api_key'))
             print("Private Key: " + cherrypy.session.get('private_key'))
-            try:
-                print("hello")
-            except:
-                print("#########################################################")
-                print("COULD NOT UPDATE DATABASE")
-                print("##########################################################")
             Page += "<a href='/signout'>Sign out</a>"
         except KeyError: #There is no username
             
@@ -122,11 +113,11 @@ class MainApp(object):
     @cherrypy.expose   
     def load_info(self, error=0):
         Page = startHTML + "<h1><center>| Your Secure Social Network |</center></h1><br/>" 
-        if (int(error) >= 0):
-            Page += "Invalid Attempt: " + str(cherrypy.session["private_attempt"]) + "<br/>"
-            Page += "MAX ATTEMPTS: 3" + "<br/>" + "<br/>"
-            if (cherrypy.session["private_attempt"] == 3):
-                raise cherrypy.HTTPRedirect('/signout')
+        #if (int(error) >= 0):
+        #    Page += "Invalid Attempt: " + str(cherrypy.session["private_attempt"]) + "<br/>"
+        #    Page += "MAX ATTEMPTS: 3" + "<br/>" + "<br/>"
+        #    if (cherrypy.session["private_attempt"] == 3):
+        #        raise cherrypy.HTTPRedirect('/signout')
                 
         try:
             Page += "Enter Unique Password"
@@ -168,6 +159,7 @@ class MainApp(object):
             redirect = True
             data.data.encrypt_database(self,cherrypy.session.get('username'),cherrypy.session.get('prev_private_key'),cherrypy.session.get('public_key'))
             cherrypy.session["blocked_message_signatures"] = record["blocked_message_signatures"]
+            cherrypy.session["blocked_usernames"] = record["blocked_usernames"]
             raise cherrypy.HTTPRedirect("/index")
             #print("FINAL CHECK")
         except:
@@ -199,13 +191,7 @@ class MainApp(object):
     @cherrypy.expose
     def signout(self):
         """Logs the current user out, expires their session"""
-        raise cherrypy.HTTPRedirect('/d/report?=' + "offline")
-        username = cherrypy.session.get('username')
-        if username is None:
-            pass
-        else:
-            cherrypy.lib.sessions.expire()
-        raise cherrypy.HTTPRedirect('/')
+        raise cherrypy.HTTPRedirect('/d/report/?status=' + "offline")
 
 
 ###
@@ -530,12 +516,14 @@ class DisplayApp(object):
         all_users = data.data.get_all_records(self)
         cherrypy.session["all_users"] = all_users
         for i in range(len(all_users["username"])):
-            Page += all_users["username"][i] + "</br>" + "</br>"
-            #Page += "<a href= all_filter?block_user=" + all_users["username"][i] + "&url=" + "list_all_users" + ">" + "Block User!" + "</a href>"
-            Page += "     <a href= all_filter?friend=" + all_users["username"][i] + "&url=" + "list_all_users" + ">" + "Friend User!" + "</a href>"
+            try:
+                Page += all_users["username"][i] + "</br>" + "</br>"
+                Page += "<a href= all_filter?block_user=" + all_users["username"][i] + "&url=" + "list_all_users" + ">" + "Block User!" + "</a href>"
+                Page += "<a href= all_filter?friend=" + all_users["username"][i] + "&url=" + "list_all_users" + ">" + "Friend User!" + "</a href>"
+            except:
+                raise cherrypy.HTTPRedirect('/index')
 
-
-
+        Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
 
 
         return Page
@@ -622,7 +610,8 @@ class DisplayApp(object):
                 Page += "<font color='blue'>INVALID status!</font>" + "<br/>"
             Page += "<br/>"
             Page += "<body> Update your status in the textbox below!" + "<br/>"
-            Page += "<body> Status MUST be either 'offline', 'online', 'busy' or 'away' or blank </body>" + "<br/>"
+            Page += "<body> Status MUST be either 'online', 'busy' or 'away' or blank </body>" + "<br/>"
+            Page += "<body> Typing in 'offline' will log you out </body>" + "<br/>"+ "<br/>"
             Page += '<form action="/d/report" class="DisplayApp" method="post" enctype="multipart/form-data">'
             Page += '<input type="text" name="status"/>'
             Page += ' <input type="submit" value=" Status Report "/></form>'
@@ -700,18 +689,18 @@ class DisplayApp(object):
             Page += '    <input type="text" name="username"/>' + "<br/>"
             Page += '<input type="submit" value=" Filter "/></form>'
 
-            Page += '<form action="/d/all_filter" class = "DisplayApp" method="post" enctype="multipart/form-data">'
-            Page += 'Filter Words/Phrases'
-            Page += '            <input type="text" name="bad_word"/>' + "<br/>"
-            Page += '            <input type="submit" value=" Block Content "/></form>' + "<br/>"   
+            #Page += '<form action="/d/all_filter" class = "DisplayApp" method="post" enctype="multipart/form-data">'
+            #Page += 'Filter Words/Phrases'
+            #Page += '            <input type="text" name="bad_word"/>' + "<br/>"
+            #Page += '            <input type="submit" value=" Block Content "/></form>' + "<br/>"   
             unwanted = False
             for i in range(len(broadcasts["users"])):
-                print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-                print(cherrypy.session.get('blocked_message_signatures'))
-                print(broadcasts["signature_b"][i])
-                print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+                unwanted = False
                 for j in range(len((cherrypy.session.get('blocked_message_signatures')))):
                     if (cherrypy.session.get('blocked_message_signatures')[j] == broadcasts["signature_b"][i]):
+                        unwanted = True
+                for z in range(len((cherrypy.session.get('blocked_usernames')))):
+                    if (cherrypy.session.get('blocked_usernames')[z] == broadcasts["users"][i]):
                         unwanted = True
                 #print(row[0])
                 if unwanted == False:
@@ -747,10 +736,11 @@ class DisplayApp(object):
     def all_filter(self,friend="none", bad_word=None, block_user="none",block_msg=None,fav_msg=None,url=None):
         Api.Api.add_privatedata(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('login_record'),cherrypy.session.get('private_key'),cherrypy.session.get('box_password'),friend,bad_word,block_user,block_msg,fav_msg)
         cherrypy.session["blocked_message_signatures"].append(block_msg)
+        cherrypy.session["blocked_usernames"].append(block_user)
         key,records = Api.Api.decode_privatedata(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'), cherrypy.session.get('box_password'))
-        print("##########################################")
+        print("################################################################")
         print(records)
-        print("##########################################")
+        print("################################################################")
         raise cherrypy.HTTPRedirect('/d/' + url)
 
 
@@ -767,7 +757,7 @@ class DisplayApp(object):
 
 
     @cherrypy.expose
-    def online_user(self, on_user=None, friend_added="none"):
+    def online_user(self, on_user=None, friend_added="none",blocked_user="none"):
         try:
             Api.Api.ping_EP(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('public_key'),cherrypy.session.get('private_key'))
         except:
@@ -778,6 +768,8 @@ class DisplayApp(object):
         print(on_user)
         print("XXXXXXXXXXXXXXXxXXXX")
         Page += "<a href = add_friend?friend_username=" + on_user + ">" + "Add as friend!" + "</a href>" 
+        Page += "<a href= all_filter?block_user=" + on_user + "&url=" + "online_user" + ">" + "Block User!" + "</a href>"
+
         
         if friend_added == "true":
             Page += "</br>"
@@ -786,7 +778,12 @@ class DisplayApp(object):
         else:
             Page+= "</br>"
 
-
+        if blocked_user == "true":
+            Page += "</br>"
+            Page += "<font color= 'DarkGreen'>Successfully BLOCKED " + on_user + " from sending you messages</font>"
+            Page += "</br>"
+        else:
+            Page+= "</br>"
 
         try:
             sender,messages,timestamp = data.data.get_private_messages(self,cherrypy.session.get('username'),on_user)
@@ -878,10 +875,11 @@ class DisplayApp(object):
 
 
     @cherrypy.expose
-    def favourites(self):
-        Page = startHTML + "<h1><center> Your Secure Social Network </center></h1><br/>"
-
-
+    def reset(self):
+        
+        Api.Api.add_privatedata(self,cherrypy.session.get('username'),cherrypy.session.get('api_key'),cherrypy.session.get('login_record'),cherrypy.session.get('private_key'),cherrypy.session.get('box_password'), reset=1)
+        Page = startHTML + "YOUR PERSONAL PREFERENCES HAVE BEEN RESET" 
+        Page += "<center>Click here to <a href='/return_to_main' class = 'MainApp'>RETURN</a>.</center>" + "<br/>"
         return Page
 
 

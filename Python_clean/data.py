@@ -26,7 +26,7 @@ def strip_tags(html):
 
 class data(object):
     def create_broadcast_table(self):
-
+        
 
         
         conn = sqlite3.connect("server_database.db")
